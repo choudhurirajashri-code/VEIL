@@ -2,7 +2,12 @@
 <!-- 
     VEIL Campus Presence Monitor
     Design Language: Swiss International Style (International Typographic Style)
+<<<<<<< Updated upstream
     Specification: Pure Wi-Fi RSSI Localization & Multi-Node Floor Topology
+=======
+    Principles: Asymmetric Grid, Generous Whitespace, Strict Alignment, Zero Radii, 
+               Restrained Color Palette (Paper Off-White, Jet Black, Swiss Red)
+>>>>>>> Stashed changes
 -->
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -26,6 +31,7 @@
              00 / MINIMAL TOP NAVIGATION & METADATA BAR
              ═══════════════════════════════════════════════════════════════ -->
         <LinearLayout
+<<<<<<< Updated upstream
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -91,10 +97,125 @@
             app:cardCornerRadius="0dp"
             app:cardElevation="0dp"
             app:cardBackgroundColor="#FDF3F2">
+=======
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="VEIL"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="@color/swiss_black"
+                android:letterSpacing="0.14" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" / GEODATA"
+                android:textSize="11sp"
+                android:textStyle="normal"
+                android:textColor="@color/swiss_muted"
+                android:letterSpacing="0.08" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SYS.01"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="@color/swiss_black"
+                android:letterSpacing="0.12" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" — EDITION 24"
+                android:textSize="10sp"
+                android:textColor="@color/swiss_muted"
+                android:letterSpacing="0.06" />
+        </LinearLayout>
+
+        <!-- Structural Hairline Rule -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/swiss_hairline_dark"
+            android:layout_marginBottom="28dp" />
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             EDITORIAL HERO: ASYMMETRICAL POSTER TYPOGRAPHY
+             ═══════════════════════════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="01 / INDEX"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/swiss_red"
+            android:letterSpacing="0.16"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CAMPUS\nPRESENCE\nMONITOR"
+            android:textSize="38sp"
+            android:textStyle="bold"
+            android:textColor="@color/swiss_black"
+            android:lineSpacingMultiplier="0.92"
+            android:letterSpacing="-0.03"
+            android:layout_marginBottom="16dp" />
+>>>>>>> Stashed changes
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Spatial boundary verification by synchronized satellite positioning and wireless mesh telemetry. Designed with strict typographic hierarchy."
+            android:textSize="13sp"
+            android:textColor="@color/swiss_charcoal"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="28dp" />
+
+        <!-- Hairline Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/swiss_hairline"
+            android:layout_marginBottom="24dp" />
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             PRIMARY STATUS BLOCK: OVERSIZED GROTESQUE TYPE + SWISS MARK
+             ═══════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <!-- Minimal Graphic Square Mark -->
+            <ImageView
+                android:id="@+id/iv_status_lamp"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:src="@drawable/ic_swiss_square_muted"
+                android:layout_marginEnd="10dp"
+                android:contentDescription="Status Indicator Mark" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+<<<<<<< Updated upstream
                 android:orientation="vertical"
                 android:padding="16dp"
                 android:background="@drawable/bg_swiss_warning_box">
@@ -251,6 +372,53 @@
             android:stateListAnimator="@null"
             android:layout_marginBottom="32dp" />
 
+=======
+                android:text="CURRENT STATE"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="@color/swiss_muted"
+                android:letterSpacing="0.16" />
+        </LinearLayout>
+
+        <!-- Bold High-Impact Status Headline -->
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SYSTEM INACTIVE"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="@color/swiss_black"
+            android:letterSpacing="-0.01"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/tv_status_sub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Engage monitoring system to establish geo-boundary perimeter."
+            android:textSize="12sp"
+            android:textColor="@color/swiss_muted"
+            android:layout_marginBottom="28dp" />
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             UNDERSTATED FUNCTIONAL ACTION BUTTON (ZERO RADII, FLAT)
+             ═══════════════════════════════════════════════════════════════ -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_toggle_tracking"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:background="@drawable/bg_swiss_button_start"
+            android:text="START MONITORING  →"
+            android:textColor="@color/swiss_white"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.16"
+            android:gravity="center"
+            android:stateListAnimator="@null"
+            android:layout_marginBottom="32dp" />
+
+>>>>>>> Stashed changes
         <!-- ═══════════════════════════════════════════════════════════════
              DETAILS SECTION — EDITORIAL TELEMETRY GRID
              ═══════════════════════════════════════════════════════════════ -->
@@ -261,7 +429,11 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+<<<<<<< Updated upstream
             <!-- ─── 02 / CONFIDENCE & RSSI SCORE ─────────────────────── -->
+=======
+            <!-- Section 02 / Confidence -->
+>>>>>>> Stashed changes
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
@@ -279,14 +451,22 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+<<<<<<< Updated upstream
                     android:text="02 / WI-FI CONFIDENCE"
+=======
+                    android:text="02 / CONFIDENCE SCORE"
+>>>>>>> Stashed changes
                     android:textSize="10sp"
                     android:textStyle="bold"
                     android:textColor="@color/swiss_black"
                     android:letterSpacing="0.14" />
 
                 <TextView
+<<<<<<< Updated upstream
                     android:id="@+id/tv_confidence"
+=======
+                    android:id="@+id/tv_confidence_val"
+>>>>>>> Stashed changes
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0%"
@@ -297,10 +477,17 @@
             </LinearLayout>
 
             <TextView
+<<<<<<< Updated upstream
                 android:id="@+id/tv_wifi_score"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="WiFi RSSI Score: 0%"
+=======
+                android:id="@+id/tv_confidence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Combined Confidence: 0%"
+>>>>>>> Stashed changes
                 android:textSize="12sp"
                 android:textColor="@color/swiss_muted"
                 android:layout_marginBottom="10dp" />
@@ -314,6 +501,7 @@
                 android:max="100"
                 android:progress="0"
                 android:progressDrawable="@drawable/progress_swiss_rule"
+<<<<<<< Updated upstream
                 android:layout_marginBottom="16dp" />
 
             <ProgressBar
@@ -390,30 +578,54 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="@color/swiss_hairline_dark"
+=======
+                android:layout_marginBottom="28dp" />
+
+            <!-- Section 03 / Multi-Column Sensors -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/swiss_hairline"
+>>>>>>> Stashed changes
                 android:layout_marginBottom="18dp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+<<<<<<< Updated upstream
                 android:text="03 / CAMPUS FLOOR NODES"
+=======
+                android:text="03 / INDIVIDUAL CHANNELS"
+>>>>>>> Stashed changes
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:textColor="@color/swiss_black"
                 android:letterSpacing="0.14"
+<<<<<<< Updated upstream
                 android:layout_marginBottom="16dp" />
 
             <!-- Node 1: RECEPTION -->
+=======
+                android:layout_marginBottom="14dp" />
+
+            <!-- Asymmetrical Sensor Grid: GPS Channel -->
+>>>>>>> Stashed changes
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+<<<<<<< Updated upstream
                 android:layout_marginBottom="18dp">
+=======
+                android:layout_marginBottom="16dp">
+>>>>>>> Stashed changes
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+<<<<<<< Updated upstream
                     android:layout_marginBottom="3dp">
 
                     <TextView
@@ -512,12 +724,195 @@
                     android:max="100"
                     android:progress="0"
                     android:progressDrawable="@drawable/progress_swiss_node" />
+=======
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/tv_gps_score"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="GPS Channel: 0%"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/swiss_charcoal" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="WEIGHT 60%"
+                        android:textSize="9sp"
+                        android:textColor="@color/swiss_subtle"
+                        android:letterSpacing="0.1" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/progress_gps"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="3dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/progress_swiss_rule" />
+            </LinearLayout>
+
+            <!-- WiFi Mesh Channel -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="28dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/tv_wifi_score"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="WiFi Mesh Channel: 0%"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/swiss_charcoal" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="WEIGHT 40%"
+                        android:textSize="9sp"
+                        android:textColor="@color/swiss_subtle"
+                        android:letterSpacing="0.1" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/progress_wifi"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="3dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/progress_swiss_rule" />
+            </LinearLayout>
+
+            <!-- Section 04 / Exact Telemetry Log -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/swiss_hairline_dark"
+                android:layout_marginBottom="18dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="04 / TELEMETRY INDEX"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="@color/swiss_black"
+                android:letterSpacing="0.14"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Row 01: Distance -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="10dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="DISTANCE FROM CENTER"
+                    android:textSize="11sp"
+                    android:textColor="@color/swiss_muted"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tv_distance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="— m"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/swiss_black" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/swiss_hairline" />
+
+            <!-- Row 02: Access Points -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="10dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="VISIBLE MESH NODES"
+                    android:textSize="11sp"
+                    android:textColor="@color/swiss_muted"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tv_mesh_aps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="— / —"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/swiss_black" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/swiss_hairline" />
+
+            <!-- Row 03: Connection State -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="10dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="MESH LINK VERIFICATION"
+                    android:textSize="11sp"
+                    android:textColor="@color/swiss_muted"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tv_connected"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DISCONNECTED"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/swiss_black" />
+>>>>>>> Stashed changes
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="@color/swiss_hairline"
+<<<<<<< Updated upstream
                 android:layout_marginBottom="16dp" />
 
             <!-- Node 3: FLOOR 2 -->
@@ -573,6 +968,9 @@
                     android:progressDrawable="@drawable/progress_swiss_node" />
             </LinearLayout>
 
+=======
+                android:layout_marginBottom="28dp" />
+>>>>>>> Stashed changes
         </LinearLayout>
 
         <!-- ═══════════════════════════════════════════════════════════════
@@ -601,7 +999,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+<<<<<<< Updated upstream
                 android:text="PURE WI-FI RSSI GEOFENCE"
+=======
+                android:text="TYPOGRAPHIC STYLE"
+>>>>>>> Stashed changes
                 android:textSize="9sp"
                 android:textColor="@color/swiss_subtle"
                 android:letterSpacing="0.12" />

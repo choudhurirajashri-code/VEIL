@@ -6,12 +6,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -21,12 +21,16 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+<<<<<<< Updated upstream
 import androidx.cardview.widget.CardView;
+=======
+>>>>>>> Stashed changes
 import androidx.core.content.ContextCompat;
 import android.provider.Settings;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
+<<<<<<< Updated upstream
  * Main Activity that displays the employee's campus presence and floor zone.
  * 
  * PURE WIFI RSSI MODE — NO GPS:
@@ -34,6 +38,10 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  *  • Which floor/zone they are on (RECEPTION, FLOOR 1, FLOOR 2)
  *  • Real-time signal strength for each campus access point
  *  • Proximity distance estimates based on WiFi RSSI
+=======
+ * Main Activity that displays campus presence status.
+ * Typeset and formatted in Swiss International Style (International Typographic Style).
+>>>>>>> Stashed changes
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -41,9 +49,17 @@ public class MainActivity extends AppCompatActivity {
 
     // UI Elements
     private TextView tvStatus;
+<<<<<<< Updated upstream
     private TextView tvCurrentZone;
     private TextView tvNearestAp;
     private TextView tvConfidence;
+=======
+    private TextView tvStatusSub;
+    private ImageView ivStatusLamp;
+    private TextView tvConfidence;
+    private TextView tvConfidenceVal;
+    private TextView tvGpsScore;
+>>>>>>> Stashed changes
     private TextView tvWifiScore;
     private TextView tvMeshAPs;
     private TextView tvAvgSignal;
@@ -88,7 +104,11 @@ public class MainActivity extends AppCompatActivity {
                             startTracking();
                         } else {
                             Toast.makeText(this,
+<<<<<<< Updated upstream
                                     "WiFi scanning permissions required for campus tracking",
+=======
+                                    "Location and WiFi permissions required for campus verification",
+>>>>>>> Stashed changes
                                     Toast.LENGTH_LONG).show();
                         }
                     });
@@ -129,10 +149,20 @@ public class MainActivity extends AppCompatActivity {
 
     private void initViews() {
         tvStatus           = findViewById(R.id.tv_status);
+<<<<<<< Updated upstream
         tvCurrentZone      = findViewById(R.id.tv_current_zone);
         tvNearestAp        = findViewById(R.id.tv_nearest_ap);
         tvConfidence       = findViewById(R.id.tv_confidence);
         tvWifiScore        = findViewById(R.id.tv_wifi_score);
+=======
+        tvStatusSub        = findViewById(R.id.tv_status_sub);
+        ivStatusLamp       = findViewById(R.id.iv_status_lamp);
+        tvConfidence       = findViewById(R.id.tv_confidence);
+        tvConfidenceVal    = findViewById(R.id.tv_confidence_val);
+        tvGpsScore         = findViewById(R.id.tv_gps_score);
+        tvWifiScore        = findViewById(R.id.tv_wifi_score);
+        tvDistance         = findViewById(R.id.tv_distance);
+>>>>>>> Stashed changes
         tvMeshAPs          = findViewById(R.id.tv_mesh_aps);
         tvAvgSignal        = findViewById(R.id.tv_avg_signal);
         tvNode1Signal      = findViewById(R.id.tv_node1_signal);
@@ -234,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
         isTracking = true;
         btnToggleTracking.setText("DISENGAGE MONITORING  ■");
         btnToggleTracking.setBackgroundResource(R.drawable.bg_swiss_button_stop);
+<<<<<<< Updated upstream
         tvStatus.setText("INITIALIZING SCAN...");
         tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
         if (tvCurrentZone != null) {
@@ -248,6 +279,21 @@ public class MainActivity extends AppCompatActivity {
 
         Toast.makeText(this, "WiFi tracking engaged", Toast.LENGTH_SHORT).show();
         Log.i(TAG, "WiFi tracking started");
+=======
+
+        tvStatus.setText("INITIALIZING FIX...");
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
+        if (tvStatusSub != null) {
+            tvStatusSub.setText("Acquiring GNSS constellation and scanning 802.11 mesh beacons.");
+        }
+        if (ivStatusLamp != null) {
+            ivStatusLamp.setImageResource(R.drawable.ic_swiss_square_black);
+        }
+        layoutDetails.setVisibility(View.VISIBLE);
+
+        Toast.makeText(this, "Geodata monitoring engaged", Toast.LENGTH_SHORT).show();
+        Log.i(TAG, "Tracking started");
+>>>>>>> Stashed changes
     }
 
     private void stopTracking() {
@@ -255,11 +301,16 @@ public class MainActivity extends AppCompatActivity {
         stopService(serviceIntent);
 
         isTracking = false;
+<<<<<<< Updated upstream
         btnToggleTracking.setText("START WI-FI MONITORING  →");
+=======
+        btnToggleTracking.setText("START MONITORING  →");
+>>>>>>> Stashed changes
         btnToggleTracking.setBackgroundResource(R.drawable.bg_swiss_button_start);
 
         tvStatus.setText("SYSTEM INACTIVE");
         tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
+<<<<<<< Updated upstream
         if (tvCurrentZone != null) {
             tvCurrentZone.setText("ZONE: --");
             tvCurrentZone.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
@@ -271,6 +322,17 @@ public class MainActivity extends AppCompatActivity {
         layoutDetails.setVisibility(View.GONE);
 
         Toast.makeText(this, "WiFi tracking disengaged", Toast.LENGTH_SHORT).show();
+=======
+        if (tvStatusSub != null) {
+            tvStatusSub.setText("Engage monitoring system to establish geo-boundary perimeter.");
+        }
+        if (ivStatusLamp != null) {
+            ivStatusLamp.setImageResource(R.drawable.ic_swiss_square_muted);
+        }
+        layoutDetails.setVisibility(View.GONE);
+
+        Toast.makeText(this, "Geodata monitoring disengaged", Toast.LENGTH_SHORT).show();
+>>>>>>> Stashed changes
         Log.i(TAG, "Tracking stopped");
     }
 
@@ -288,6 +350,7 @@ public class MainActivity extends AppCompatActivity {
         int avgSignal         = intent.getIntExtra(
                 GeoFenceTrackingService.EXTRA_AVG_SIGNAL, -100);
 
+<<<<<<< Updated upstream
         String currentZone    = intent.getStringExtra(
                 GeoFenceTrackingService.EXTRA_CURRENT_ZONE);
         String nearestSsid    = intent.getStringExtra(
@@ -346,10 +409,32 @@ public class MainActivity extends AppCompatActivity {
         } else {
             tvNearestAp.setText("Nearest Node: No campus beacon detected");
             tvNearestAp.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
+=======
+        // ─── Status ──────────────────────────────────────────────
+        if (isInside) {
+            tvStatus.setText("INSIDE CAMPUS");
+            tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
+            if (tvStatusSub != null) {
+                tvStatusSub.setText("Spatial coordinates verified within calibrated campus perimeter.");
+            }
+            if (ivStatusLamp != null) {
+                ivStatusLamp.setImageResource(R.drawable.ic_swiss_square_black);
+            }
+        } else {
+            tvStatus.setText("OUTSIDE PERIMETER");
+            tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_red));
+            if (tvStatusSub != null) {
+                tvStatusSub.setText("Alert: Current coordinates exceed calibrated campus boundary.");
+            }
+            if (ivStatusLamp != null) {
+                ivStatusLamp.setImageResource(R.drawable.ic_swiss_square_red);
+            }
+>>>>>>> Stashed changes
         }
 
         // ─── Confidence ──────────────────────────────────────────
         int confidencePercent = Math.round(confidence * 100);
+<<<<<<< Updated upstream
         tvConfidence.setText(confidencePercent + "%");
         progressConfidence.setProgress(confidencePercent);
 
@@ -380,5 +465,30 @@ public class MainActivity extends AppCompatActivity {
             tv.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
             pb.setProgress(0);
         }
+=======
+        if (tvConfidenceVal != null) {
+            tvConfidenceVal.setText(confidencePercent + "%");
+        }
+        tvConfidence.setText("Combined Confidence: " + confidencePercent + "%");
+        progressConfidence.setProgress(confidencePercent);
+
+        // ─── GPS Score ───────────────────────────────────────────
+        int gpsPercent = Math.round(gpsScore * 100);
+        tvGpsScore.setText("GPS Satellite Channel: " + gpsPercent + "%");
+        progressGps.setProgress(gpsPercent);
+
+        // ─── WiFi Score ──────────────────────────────────────────
+        int wifiPercent = Math.round(wifiScore * 100);
+        tvWifiScore.setText("WiFi Mesh Channel: " + wifiPercent + "%");
+        progressWifi.setProgress(wifiPercent);
+
+        // ─── Details ─────────────────────────────────────────────
+        tvDistance.setText(String.format("%.1f m", distance));
+        tvMeshAPs.setText(String.format("%02d / %02d",
+                meshAPCount, GeoFenceConfig.OFFICE_MESH_BSSIDS.length));
+        tvConnected.setText(connectedMesh ? "VERIFIED (CONNECTED)" : "DISCONNECTED");
+        tvConnected.setTextColor(ContextCompat.getColor(this,
+                connectedMesh ? R.color.swiss_black : R.color.swiss_red));
+>>>>>>> Stashed changes
     }
 }
