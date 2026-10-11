@@ -1,9 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.OfficeCampusTracker" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/primary_blue</item>
-        <item name="colorPrimaryDark">@color/primary_blue_dark</item>
-        <item name="colorAccent">@color/accent_teal</item>
+    <!-- Swiss International Typographic Style Theme -->
+    <style name="Theme.OfficeCampusTracker" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/swiss_black</item>
+        <item name="colorPrimaryDark">@color/swiss_bg</item>
+        <item name="colorAccent">@color/swiss_red</item>
+        <item name="android:windowBackground">@color/swiss_bg</item>
+        <item name="android:statusBarColor">@color/swiss_bg</item>
+        <item name="android:navigationBarColor">@color/swiss_bg</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
     </style>
 </resources>

@@ -232,11 +232,21 @@ public class MainActivity extends AppCompatActivity {
         }
 
         isTracking = true;
-        btnToggleTracking.setText("⏹ Stop Tracking");
-        btnToggleTracking.setBackgroundColor(Color.parseColor("#D32F2F"));
+        btnToggleTracking.setText("DISENGAGE MONITORING  ■");
+        btnToggleTracking.setBackgroundResource(R.drawable.bg_swiss_button_stop);
+        tvStatus.setText("INITIALIZING SCAN...");
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
+        if (tvCurrentZone != null) {
+            tvCurrentZone.setText("ZONE: ACQUIRING BEACON...");
+            tvCurrentZone.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
+        }
+        if (tvNearestAp != null) {
+            tvNearestAp.setText("Nearest Node: Scanning campus frequencies...");
+            tvNearestAp.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
+        }
         layoutDetails.setVisibility(View.VISIBLE);
 
-        Toast.makeText(this, "WiFi tracking started", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "WiFi tracking engaged", Toast.LENGTH_SHORT).show();
         Log.i(TAG, "WiFi tracking started");
     }
 
@@ -245,21 +255,22 @@ public class MainActivity extends AppCompatActivity {
         stopService(serviceIntent);
 
         isTracking = false;
-        btnToggleTracking.setText("▶ Start Tracking");
-        btnToggleTracking.setBackgroundColor(Color.parseColor("#388E3C"));
+        btnToggleTracking.setText("START WI-FI MONITORING  →");
+        btnToggleTracking.setBackgroundResource(R.drawable.bg_swiss_button_start);
 
-        tvStatus.setText("Tracking Stopped");
-        tvStatus.setTextColor(Color.GRAY);
+        tvStatus.setText("SYSTEM INACTIVE");
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
         if (tvCurrentZone != null) {
-            tvCurrentZone.setText("📍 Current Zone: --");
-            tvCurrentZone.setTextColor(Color.GRAY);
+            tvCurrentZone.setText("ZONE: --");
+            tvCurrentZone.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
         }
         if (tvNearestAp != null) {
-            tvNearestAp.setText("Nearest AP: --");
+            tvNearestAp.setText("Nearest Node: Standby");
+            tvNearestAp.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
         }
         layoutDetails.setVisibility(View.GONE);
 
-        Toast.makeText(this, "WiFi tracking stopped", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "WiFi tracking disengaged", Toast.LENGTH_SHORT).show();
         Log.i(TAG, "Tracking stopped");
     }
 
@@ -303,34 +314,43 @@ public class MainActivity extends AppCompatActivity {
 
         // ─── Status & Zone ───────────────────────────────────────
         if (isInside) {
-            tvStatus.setText("✅ INSIDE CAMPUS");
-            tvStatus.setTextColor(Color.parseColor("#2E7D32")); // Green
-            tvCurrentZone.setText("📍 Current Location: " + (currentZone != null ? currentZone : "CAMPUS"));
-            tvCurrentZone.setTextColor(Color.parseColor("#1565C0")); // Blue
+            tvStatus.setText("INSIDE CAMPUS");
+            tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
+            if (tvCurrentZone != null) {
+                tvCurrentZone.setText("ZONE: " + (currentZone != null ? currentZone.toUpperCase() : "CAMPUS"));
+                tvCurrentZone.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
+            }
         } else if (!locationEnabled && meshAPCount == 0) {
-            tvStatus.setText("⚠️ SYSTEM LOCATION OFF");
-            tvStatus.setTextColor(Color.parseColor("#E65100")); // Orange
-            tvCurrentZone.setText("📍 Turn ON Location to Scan Wi-Fi");
-            tvCurrentZone.setTextColor(Color.parseColor("#E65100"));
+            tvStatus.setText("LOCATION SWITCH OFF");
+            tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_red));
+            if (tvCurrentZone != null) {
+                tvCurrentZone.setText("SCANNING BLOCKED BY OS");
+                tvCurrentZone.setTextColor(ContextCompat.getColor(this, R.color.swiss_red));
+            }
         } else {
-            tvStatus.setText("❌ OUTSIDE CAMPUS");
-            tvStatus.setTextColor(Color.parseColor("#C62828")); // Red
-            tvCurrentZone.setText("📍 Location: OUTSIDE");
-            tvCurrentZone.setTextColor(Color.parseColor("#C62828"));
+            tvStatus.setText("OUTSIDE PERIMETER");
+            tvStatus.setTextColor(ContextCompat.getColor(this, R.color.swiss_red));
+            if (tvCurrentZone != null) {
+                tvCurrentZone.setText("ZONE: OUTSIDE BOUNDARY");
+                tvCurrentZone.setTextColor(ContextCompat.getColor(this, R.color.swiss_red));
+            }
         }
 
         if (nearestSignal > -100 && nearestSsid != null) {
-            tvNearestAp.setText("Nearest AP: " + nearestSsid + " (" + nearestSignal + " dBm • ~" +
+            tvNearestAp.setText("Nearest Node: " + nearestSsid + " (" + nearestSignal + " dBm • ~" +
                     String.format("%.1f", estDist) + "m)");
+            tvNearestAp.setTextColor(ContextCompat.getColor(this, R.color.swiss_charcoal));
         } else if (!locationEnabled && meshAPCount == 0) {
-            tvNearestAp.setText("Wi-Fi scanning is blocked by Android when Location is OFF");
+            tvNearestAp.setText("Wi-Fi scanning is restricted while system Location is OFF");
+            tvNearestAp.setTextColor(ContextCompat.getColor(this, R.color.swiss_red));
         } else {
-            tvNearestAp.setText("Nearest AP: No office AP detected");
+            tvNearestAp.setText("Nearest Node: No campus beacon detected");
+            tvNearestAp.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
         }
 
         // ─── Confidence ──────────────────────────────────────────
         int confidencePercent = Math.round(confidence * 100);
-        tvConfidence.setText("WiFi Confidence: " + confidencePercent + "%");
+        tvConfidence.setText(confidencePercent + "%");
         progressConfidence.setProgress(confidencePercent);
 
         // ─── WiFi Score ──────────────────────────────────────────
@@ -338,9 +358,9 @@ public class MainActivity extends AppCompatActivity {
         progressWifi.setProgress(confidencePercent);
 
         // ─── Details ─────────────────────────────────────────────
-        tvMeshAPs.setText("Visible campus APs: " + meshAPCount
-                + " / " + GeoFenceConfig.CAMPUS_NODES.length);
-        tvAvgSignal.setText("Avg signal strength: " + avgSignal + " dBm");
+        tvMeshAPs.setText(String.format("%02d / %02d",
+                meshAPCount, GeoFenceConfig.CAMPUS_NODES.length));
+        tvAvgSignal.setText(avgSignal + " dBm");
 
         // ─── Floor Nodes Signal Breakdown ─────────────────────────
         updateNodeView(tvNode1Signal, progressNode1, "58:BF:25:92:F3:41", node1Signal);
@@ -353,11 +373,11 @@ public class MainActivity extends AppCompatActivity {
         if (rssiDbm > -100) {
             int quality = Math.max(0, Math.min(100, 2 * (rssiDbm + 100)));
             tv.setText("Signal: " + rssiDbm + " dBm (" + quality + "% • " + bssid + ")");
-            tv.setTextColor(Color.parseColor("#1B5E20"));
+            tv.setTextColor(ContextCompat.getColor(this, R.color.swiss_black));
             pb.setProgress(quality);
         } else {
             tv.setText("Signal: Not detected (" + bssid + ")");
-            tv.setTextColor(Color.parseColor("#757575"));
+            tv.setTextColor(ContextCompat.getColor(this, R.color.swiss_muted));
             pb.setProgress(0);
         }
     }
