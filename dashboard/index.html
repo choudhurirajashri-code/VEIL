@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VEIL — Enterprise Campus Attendance & Compliance Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       APP HEADER / NAVBAR
+       ═══════════════════════════════════════════════════════════════ -->
+  <header class="navbar">
+    <div class="nav-left">
+      <div class="logo-box">
+        <div class="logo-badge">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="logo-title-group">
+          <div class="logo-title">
+            <span class="logo-gradient">VEIL</span>
+            <span class="logo-sub">ENTERPRISE</span>
+          </div>
+          <div class="logo-caption">Passive WiFi RSSI Presence &amp; 6H Working Hours Compliance</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <div class="live-clock-pill">
+        <span class="live-dot pulse"></span>
+        <span id="liveClockDate">Loading date...</span>
+        <span class="clock-divider">•</span>
+        <span id="liveClockTime" class="clock-time">00:00:00</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="api-status-badge" id="apiStatusBadge">
+        <span class="status-indicator-dot" id="apiStatusDot"></span>
+        <span id="apiStatusText">Live Engine Active</span>
+      </div>
+
+      <button id="btnSyncServer" class="btn-ghost" title="Synchronize live telemetry with backend server">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span>Sync Live</span>
+      </button>
+
+      <button id="btnResetStore" class="btn-ghost" title="Wipe all data to keep clean empty state">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        <span>Clear All Data</span>
+      </button>
+
+      <button id="btnExportCsv" class="btn-ghost" title="Export attendance & compliance report as CSV">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        <span>Export CSV</span>
+      </button>
+
+      <button id="btnAddEmployee" class="btn-primary" title="Register a new employee">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Add Employee</span>
+      </button>
+
+      <button id="btnToggleTheme" class="btn-icon" title="Toggle Dark/Light Mode">
+        <svg id="themeIcon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MAIN CONTAINER
+       ═══════════════════════════════════════════════════════════════ -->
+  <main class="dashboard-body">
+
+    <!-- ── 6-HOUR COMPLIANCE MANDATE HERO BANNER ── -->
+    <section class="compliance-mandate-card">
+      <div class="mandate-left">
+        <div class="mandate-icon-box">
+          <svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div class="mandate-content">
+          <div class="mandate-header-row">
+            <span class="mandate-badge">POLICY RULE: 6H DAILY WORK REQUIREMENT</span>
+            <span class="mandate-updated">Active Tracking • Auto-recalculated every second</span>
+          </div>
+          <h2 class="mandate-title">All employees must accumulate ≥ 6.0 hours on-campus daily to achieve full compliance</h2>
+          <p class="mandate-desc">
+            Campus presence is passively monitored using ESP32 WiFi RSSI nodes (Reception, Floor 1, Floor 2) without GPS. 
+            Live timers automatically tick whenever an employee is detected inside any campus zone.
+          </p>
+        </div>
+      </div>
+      <div class="mandate-right">
+        <div class="compliance-ring-container">
+          <div class="compliance-ring-value" id="mandateCompliancePercent">0%</div>
+          <div class="compliance-ring-label">Workforce Compliant</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── EXECUTIVE METRICS OVERVIEW CARDS ── -->
+    <section class="kpi-grid">
+      <!-- KPI 1: Total Employees & In-Campus Count -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Campus Headcount</span>
+          <div class="kpi-icon-wrap blue">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiInsideCount">0</span>
+          <span class="kpi-sub-total">/ <span id="kpiTotalEmployees">0</span> enrolled</span>
+        </div>
+        <div class="kpi-progress-bar">
+          <div class="kpi-progress-fill blue" id="kpiInsideProgress" style="width: 0%"></div>
+        </div>
+        <div class="kpi-footer">
+          <span class="badge-dot green"></span>
+          <span id="kpiInsidePercent">0%</span> of employees currently inside campus
+        </div>
+      </div>
+
+      <!-- KPI 2: Compliant Employees (6h+) -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">6H Rule Compliant (≥ 6h)</span>
+          <div class="kpi-icon-wrap green">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value text-green" id="kpiCompliantCount">0</span>
+          <span class="kpi-sub-total">employees</span>
+        </div>
+        <div class="kpi-progress-bar">
+          <div class="kpi-progress-fill green" id="kpiCompliantProgress" style="width: 0%"></div>
+        </div>
+        <div class="kpi-footer">
+          <span class="text-green font-semibold" id="kpiCompliantRate">0%</span> compliance rate today
+        </div>
+      </div>
+
+      <!-- KPI 3: Non-Compliant / At Risk (< 6h) -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Non-Compliant / Pending (&lt; 6h)</span>
+          <div class="kpi-icon-wrap red">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value text-red" id="kpiNonCompliantCount">0</span>
+          <span class="kpi-sub-total">employees</span>
+        </div>
+        <div class="kpi-progress-bar">
+          <div class="kpi-progress-fill red" id="kpiNonCompliantProgress" style="width: 0%"></div>
+        </div>
+        <div class="kpi-footer">
+          <span id="kpiPendingNotice">Includes employees currently building daily hours</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Average Work Hours Today -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Avg Working Hours Today</span>
+          <div class="kpi-icon-wrap purple">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiAvgHours">0.0h</span>
+          <span class="kpi-sub-total">/ 6.0h target</span>
+        </div>
+        <div class="kpi-progress-bar">
+          <div class="kpi-progress-fill purple" id="kpiAvgHoursProgress" style="width: 0%"></div>
+        </div>
+        <div class="kpi-footer">
+          <span>Weekly workforce aggregate: <strong id="kpiTotalWeeklyHours">0h</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CAMPUS HARDWARE TOPOLOGY STRIP ── -->
+    <section class="topology-strip">
+      <div class="topology-label-group">
+        <div class="topology-title">
+          <span class="badge-dot blue pulse"></span>
+          <span>CAMPUS BEACON NODES (ESP32)</span>
+        </div>
+        <div class="topology-subtitle">100% Pure WiFi RSSI • No GPS Required</div>
+      </div>
+      <div class="nodes-container">
+        <!-- Node 1: Reception -->
+        <div class="node-pill" data-zone="RECEPTION">
+          <div class="node-status-dot green"></div>
+          <div class="node-info">
+            <div class="node-name">Node 1: RECEPTION</div>
+            <div class="node-meta">SSID: <code>OFFICE_RECEPTION</code> • <span id="node1Occupants">0</span> Present</div>
+          </div>
+        </div>
+
+        <!-- Node 2: Floor 1 -->
+        <div class="node-pill active-node" data-zone="FLOOR_1">
+          <div class="node-status-dot green"></div>
+          <div class="node-info">
+            <div class="node-name">Node 2: FLOOR 1</div>
+            <div class="node-meta">SSID: <code>OFFICE_FLOOR1</code> • <span id="node2Occupants">0</span> Present</div>
+          </div>
+        </div>
+
+        <!-- Node 3: Floor 2 -->
+        <div class="node-pill" data-zone="FLOOR_2">
+          <div class="node-status-dot green"></div>
+          <div class="node-info">
+            <div class="node-name">Node 3: FLOOR 2</div>
+            <div class="node-meta">SSID: <code>OFFICE_FLOOR2</code> • <span id="node3Occupants">0</span> Present</div>
+          </div>
+        </div>
+
+        <!-- Off Campus -->
+        <div class="node-pill off-campus" data-zone="OUTSIDE">
+          <div class="node-status-dot red"></div>
+          <div class="node-info">
+            <div class="node-name">OFF-CAMPUS / AWAY</div>
+            <div class="node-meta">Out of reach • <span id="nodeOutsideOccupants">0</span> Remote</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CONTROLS, SEARCH & FILTER TOOLBAR ── -->
+    <section class="toolbar-section">
+      <!-- Filter tabs -->
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">All Employees (<span id="countFilterAll">0</span>)</button>
+        <button class="filter-tab" data-filter="compliant">
+          <span class="badge-dot green"></span> Compliant ≥6h (<span id="countFilterCompliant">0</span>)
+        </button>
+        <button class="filter-tab" data-filter="in-progress">
+          <span class="badge-dot amber"></span> In Progress (<span id="countFilterInProgress">0</span>)
+        </button>
+        <button class="filter-tab" data-filter="non-compliant">
+          <span class="badge-dot red"></span> Non-Compliant &lt;6h (<span id="countFilterNonCompliant">0</span>)
+        </button>
+        <button class="filter-tab" data-filter="inside">
+          <span class="badge-dot blue"></span> Inside Campus (<span id="countFilterInside">0</span>)
+        </button>
+        <button class="filter-tab" data-filter="outside">
+          <span class="badge-dot gray"></span> Outside Campus (<span id="countFilterOutside">0</span>)
+        </button>
+      </div>
+
+      <!-- Controls row -->
+      <div class="controls-row">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="searchInput" placeholder="Search by name, ID, role, or floor...">
+          <button id="btnClearSearch" class="btn-clear" style="display: none;">&times;</button>
+        </div>
+
+        <div class="dropdown-group">
+          <!-- Department filter -->
+          <select id="departmentFilter" class="select-dropdown">
+            <option value="all">All Departments</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Product & Design">Product & Design</option>
+            <option value="Sales & Growth">Sales & Growth</option>
+            <option value="Human Resources">Human Resources</option>
+            <option value="Operations">Operations</option>
+          </select>
+
+          <!-- Zone / Floor filter -->
+          <select id="floorFilter" class="select-dropdown">
+            <option value="all">All Floors / Zones</option>
+            <option value="RECEPTION">Reception (Node 1)</option>
+            <option value="FLOOR_1">Floor 1 (Node 2)</option>
+            <option value="FLOOR_2">Floor 2 (Node 3)</option>
+            <option value="OUTSIDE">Outside Campus</option>
+          </select>
+
+          <!-- Sort dropdown -->
+          <select id="sortDropdown" class="select-dropdown">
+            <option value="hours-desc">Sort: Today's Hours (High → Low)</option>
+            <option value="hours-asc">Sort: Today's Hours (Low → High)</option>
+            <option value="name-asc">Sort: Name (A → Z)</option>
+            <option value="week-desc">Sort: Weekly Hours (High → Low)</option>
+            <option value="month-desc">Sort: Monthly Hours (High → Low)</option>
+            <option value="compliance">Sort: Compliance Status</option>
+          </select>
+        </div>
+
+        <!-- View mode toggle buttons -->
+        <div class="view-mode-group">
+          <button class="btn-view-mode active" id="btnViewGrid" title="Grid View">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </button>
+          <button class="btn-view-mode" id="btnViewTable" title="Table View">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          </button>
+          <button class="btn-view-mode" id="btnViewFloor" title="Floor Map View">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ACTIVE VIEW CONTAINER ── -->
+    <!-- VIEW 1: Grid Cards -->
+    <section id="gridContainer" class="employee-grid">
+      <!-- Populated via JavaScript -->
+    </section>
+
+    <!-- VIEW 2: Data Table -->
+    <section id="tableContainer" class="employee-table-wrapper" style="display: none;">
+      <table class="employee-table">
+        <thead>
+          <tr>
+            <th>EMPLOYEE</th>
+            <th>DEPARTMENT</th>
+            <th>CURRENT ZONE / AP</th>
+            <th>TODAY'S HOURS</th>
+            <th>6H DAILY PROGRESS</th>
+            <th>THIS WEEK</th>
+            <th>THIS MONTH</th>
+            <th>COMPLIANCE STATUS</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Populated via JavaScript -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- VIEW 3: Interactive Floor Map -->
+    <section id="floorMapContainer" class="floor-map-view" style="display: none;">
+      <div class="floor-zone-cards-grid">
+        <!-- Reception Zone -->
+        <div class="floor-zone-card" id="zoneReceptionCard">
+          <div class="floor-zone-header">
+            <div class="zone-badge-wrap">
+              <span class="zone-chip blue">NODE 1: RECEPTION</span>
+              <span class="zone-bssid">58:BF:25:92:F3:41</span>
+            </div>
+            <div class="zone-headcount"><span id="zoneCountReception">0</span> employees</div>
+          </div>
+          <div class="floor-zone-body" id="zoneReceptionList">
+            <!-- Dynamic employee chips -->
+          </div>
+        </div>
+
+        <!-- Floor 1 Zone -->
+        <div class="floor-zone-card" id="zoneFloor1Card">
+          <div class="floor-zone-header">
+            <div class="zone-badge-wrap">
+              <span class="zone-chip green">NODE 2: FLOOR 1</span>
+              <span class="zone-bssid">88:13:BF:09:D6:55</span>
+            </div>
+            <div class="zone-headcount"><span id="zoneCountFloor1">0</span> employees</div>
+          </div>
+          <div class="floor-zone-body" id="zoneFloor1List">
+            <!-- Dynamic employee chips -->
+          </div>
+        </div>
+
+        <!-- Floor 2 Zone -->
+        <div class="floor-zone-card" id="zoneFloor2Card">
+          <div class="floor-zone-header">
+            <div class="zone-badge-wrap">
+              <span class="zone-chip purple">NODE 3: FLOOR 2</span>
+              <span class="zone-bssid">8C:94:DF:6D:73:81</span>
+            </div>
+            <div class="zone-headcount"><span id="zoneCountFloor2">0</span> employees</div>
+          </div>
+          <div class="floor-zone-body" id="zoneFloor2List">
+            <!-- Dynamic employee chips -->
+          </div>
+        </div>
+
+        <!-- Outside / Remote Zone -->
+        <div class="floor-zone-card" id="zoneOutsideCard">
+          <div class="floor-zone-header">
+            <div class="zone-badge-wrap">
+              <span class="zone-chip red">OUTSIDE CAMPUS</span>
+              <span class="zone-bssid">Beacon unreachable</span>
+            </div>
+            <div class="zone-headcount"><span id="zoneCountOutside">0</span> employees</div>
+          </div>
+          <div class="floor-zone-body" id="zoneOutsideList">
+            <!-- Dynamic employee chips -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty search result state -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <h3>No matching employees found</h3>
+      <p>Try adjusting your search criteria or resetting the filters.</p>
+      <button id="btnResetFilters" class="btn-ghost">Reset Filters</button>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       EMPLOYEE DETAIL DRAWER (MODAL)
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <aside id="employeeDrawer" class="employee-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <h3 id="drawerName">Employee Name</h3>
+        <div class="drawer-subtitle" id="drawerRoleDept">Role • Department</div>
+      </div>
+      <button id="btnCloseDrawer" class="btn-close-drawer">&times;</button>
+    </div>
+
+    <div class="drawer-content" id="drawerContent">
+      <!-- Rendered dynamically via JavaScript -->
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       ADD EMPLOYEE MODAL
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="modalAddOverlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Register New Employee</h3>
+        <button id="btnCloseAddModal" class="btn-modal-close">&times;</button>
+      </div>
+      <form id="addEmployeeForm" class="modal-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="empIdInput">Employee ID *</label>
+            <input type="text" id="empIdInput" placeholder="e.g. EMP-125" required>
+          </div>
+          <div class="form-group">
+            <label for="empNameInput">Full Name *</label>
+            <input type="text" id="empNameInput" placeholder="e.g. Aditi Sharma" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="empRoleInput">Job Title / Role *</label>
+            <input type="text" id="empRoleInput" placeholder="e.g. Software Engineer" required>
+          </div>
+          <div class="form-group">
+            <label for="empDeptInput">Department *</label>
+            <select id="empDeptInput" required>
+              <option value="Engineering">Engineering</option>
+              <option value="Product & Design">Product & Design</option>
+              <option value="Sales & Growth">Sales & Growth</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Operations">Operations</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="empInitialZone">Initial Location / Zone</label>
+            <select id="empInitialZone">
+              <option value="FLOOR_1">Floor 1 (Node 2)</option>
+              <option value="FLOOR_2">Floor 2 (Node 3)</option>
+              <option value="RECEPTION">Reception (Node 1)</option>
+              <option value="OUTSIDE">Outside Campus</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="empDeviceInput">Client Device Platform</label>
+            <select id="empDeviceInput">
+              <option value="Android Mobile">Android Mobile (Foreground Service)</option>
+              <option value="Windows Laptop">Windows Laptop (System Tray App)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="btnCancelAdd" class="btn-ghost">Cancel</button>
+          <button type="submit" class="btn-primary">Register Employee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- JavaScript logic -->
+  <script src="app.js"></script>
+</body>
+</html>
