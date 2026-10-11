@@ -1,8 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary_blue">#1565C0</color>
-    <color name="primary_blue_dark">#0D47A1</color>
-    <color name="accent_teal">#00897B</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Swiss International Style Palette -->
+    <!-- Backgrounds -->
+    <color name="swiss_bg">#F7F6F2</color>
+    <color name="swiss_white">#FFFFFF</color>
+    <color name="swiss_surface">#EFECE6</color>
+
+    <!-- Typography & Ink -->
+    <color name="swiss_black">#0A0A0A</color>
+    <color name="swiss_charcoal">#333333</color>
+    <color name="swiss_muted">#737373</color>
+    <color name="swiss_subtle">#9E9E9E</color>
+
+    <!-- Swiss International Graphic Accent -->
+    <color name="swiss_red">#E52E20</color>
+    <color name="swiss_red_dark">#C42014</color>
+    <color name="swiss_red_subtle">#FFEBEE</color>
+
+    <!-- Hairline Grid & Rule Lines -->
+    <color name="swiss_hairline">#E0DDD5</color>
+    <color name="swiss_hairline_dark">#0A0A0A</color>
+    <color name="swiss_track">#E8E5DD</color>
+
+    <!-- Compatibility Aliases -->
+    <color name="black">#0A0A0A</color>
+    <color name="white">#FFFFFF</color>
+    <color name="primary_blue">#0A0A0A</color>
+    <color name="primary_blue_dark">#0A0A0A</color>
+    <color name="accent_teal">#E52E20</color>
 </resources>
