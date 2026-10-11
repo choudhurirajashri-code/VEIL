@@ -22,11 +22,7 @@
     <color name="swiss_hairline_dark">#0A0A0A</color>
     <color name="swiss_track">#E8E5DD</color>
 
-<<<<<<< Updated upstream
     <!-- Compatibility Aliases -->
-=======
-    <!-- Legacy / Compatibility Aliases -->
->>>>>>> Stashed changes
     <color name="black">#0A0A0A</color>
     <color name="white">#FFFFFF</color>
     <color name="primary_blue">#0A0A0A</color>
