@@ -237,10 +237,10 @@
                         android:drawablePadding="8dp" />
 
                     <TextView
-                        android:id="@+id/tv_connected"
+                        android:id="@+id/tv_avg_signal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Connected to mesh: --"
+                        android:text="Avg signal strength: --"
                         android:textSize="14sp"
                         android:textColor="#455A64"
                         android:drawableStart="@android:drawable/ic_menu_share"

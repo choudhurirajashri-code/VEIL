@@ -13,7 +13,6 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.wifi.ScanResult;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
@@ -62,7 +61,7 @@ public class GeoFenceTrackingService extends Service {
     public static final String EXTRA_WIFI_SCORE   = "extra_wifi_score";
     public static final String EXTRA_DISTANCE     = "extra_distance";
     public static final String EXTRA_MESH_AP_COUNT = "extra_mesh_ap_count";
-    public static final String EXTRA_CONNECTED_TO_MESH = "extra_connected_to_mesh";
+    public static final String EXTRA_AVG_SIGNAL    = "extra_avg_signal";
 
     private static final String CHANNEL_ID = "geo_fence_tracking_channel";
     private static final int NOTIFICATION_ID = 1001;
@@ -231,29 +230,11 @@ public class GeoFenceTrackingService extends Service {
     // ═══════════════════════════════════════════════════════════════
 
     private void performGeoFenceCheck() {
-        // Get current WiFi connection info
-        String connectedSSID  = null;
-        String connectedBSSID = null;
-
-        if (wifiManager != null) {
-            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-            if (wifiInfo != null) {
-                connectedSSID  = wifiInfo.getSSID();
-                connectedBSSID = wifiInfo.getBSSID();
-
-                // WifiInfo wraps SSID in quotes — remove them
-                if (connectedSSID != null) {
-                    connectedSSID = connectedSSID.replace("\"", "");
-                }
-            }
-        }
-
-        // ★ INVOKE THE GEO-FENCE CHECKER ★
+        // ★ INVOKE THE GEO-FENCE CHECKER (SCAN-ONLY) ★
+        // No WiFi connection info needed — purely scan-based detection
         GeoFenceChecker.GeoFenceResult result = geoFenceChecker.checkIfInsideGeofence(
                 currentLocation,
-                latestScanResults,
-                connectedSSID,
-                connectedBSSID
+                latestScanResults
         );
 
         // Log the result
@@ -265,7 +246,7 @@ public class GeoFenceTrackingService extends Service {
         Log.i(TAG, "  WiFi Score:     " + String.format("%.2f", result.wifiScore));
         Log.i(TAG, "  Distance:       " + String.format("%.1fm", result.distanceFromCenter));
         Log.i(TAG, "  Mesh APs:       " + result.visibleMeshAPCount);
-        Log.i(TAG, "  Connected:      " + result.isConnectedToMesh);
+        Log.i(TAG, "  Avg Signal:     " + result.averageSignalStrength + " dBm");
         Log.i(TAG, "─────────────────────────────────────");
 
         // Broadcast result to the Activity
@@ -294,7 +275,7 @@ public class GeoFenceTrackingService extends Service {
         intent.putExtra(EXTRA_WIFI_SCORE,          result.wifiScore);
         intent.putExtra(EXTRA_DISTANCE,            result.distanceFromCenter);
         intent.putExtra(EXTRA_MESH_AP_COUNT,       result.visibleMeshAPCount);
-        intent.putExtra(EXTRA_CONNECTED_TO_MESH,   result.isConnectedToMesh);
+        intent.putExtra(EXTRA_AVG_SIGNAL,          result.averageSignalStrength);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }

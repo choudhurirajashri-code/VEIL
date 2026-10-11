@@ -26,11 +26,11 @@ public class GeoFenceConfig {
     public static final float GEO_FENCE_RADIUS_METERS = 200.0f;
 
     // ═══════════════════════════════════════════════════════════════
-    //  MESH WIFI CONFIGURATION
+    //  MESH WIFI CONFIGURATION (SCAN-ONLY)
     //  All access points in the office mesh network.
-    //  SSID is shared across all mesh nodes; BSSIDs are unique per AP.
+    //  We scan for these BSSIDs — NO connection to the mesh is required.
+    //  BSSIDs are unique per AP; SSID is irrelevant in scan-only mode.
     // ═══════════════════════════════════════════════════════════════
-    public static final String OFFICE_MESH_SSID = "OfficeCampus_WiFi";
 
     /**
      * Known BSSIDs (MAC addresses) of every access point in the mesh.

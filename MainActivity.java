@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvWifiScore;
     private TextView tvDistance;
     private TextView tvMeshAPs;
-    private TextView tvConnected;
+    private TextView tvAvgSignal;
     private ProgressBar progressConfidence;
     private ProgressBar progressGps;
     private ProgressBar progressWifi;
@@ -125,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
         tvWifiScore        = findViewById(R.id.tv_wifi_score);
         tvDistance          = findViewById(R.id.tv_distance);
         tvMeshAPs          = findViewById(R.id.tv_mesh_aps);
-        tvConnected        = findViewById(R.id.tv_connected);
+        tvAvgSignal        = findViewById(R.id.tv_avg_signal);
         progressConfidence = findViewById(R.id.progress_confidence);
         progressGps        = findViewById(R.id.progress_gps);
         progressWifi       = findViewById(R.id.progress_wifi);
@@ -251,8 +251,8 @@ public class MainActivity extends AppCompatActivity {
                 GeoFenceTrackingService.EXTRA_DISTANCE, 0f);
         int meshAPCount       = intent.getIntExtra(
                 GeoFenceTrackingService.EXTRA_MESH_AP_COUNT, 0);
-        boolean connectedMesh = intent.getBooleanExtra(
-                GeoFenceTrackingService.EXTRA_CONNECTED_TO_MESH, false);
+        int avgSignal         = intent.getIntExtra(
+                GeoFenceTrackingService.EXTRA_AVG_SIGNAL, -100);
 
         // ─── Status ──────────────────────────────────────────────
         if (isInside) {
@@ -282,6 +282,6 @@ public class MainActivity extends AppCompatActivity {
         tvDistance.setText("Distance from center: " + String.format("%.1f m", distance));
         tvMeshAPs.setText("Visible mesh APs: " + meshAPCount
                 + " / " + GeoFenceConfig.OFFICE_MESH_BSSIDS.length);
-        tvConnected.setText("Connected to mesh: " + (connectedMesh ? "Yes ✅" : "No ❌"));
+        tvAvgSignal.setText("Avg signal strength: " + avgSignal + " dBm");
     }
 }

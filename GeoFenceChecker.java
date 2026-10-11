@@ -14,7 +14,7 @@ import java.util.Set;
  * mesh network signals.
  * 
  * ══════════════════════════════════════════════════════════════════════
- *  ALGORITHM OVERVIEW
+ *  ALGORITHM OVERVIEW (SCAN-ONLY MODE)
  * ══════════════════════════════════════════════════════════════════════
  * 
  *  The checker fuses two independent signals:
@@ -22,11 +22,11 @@ import java.util.Set;
  *  1. GPS SIGNAL  → Is the device's lat/lng within the geo-fence radius?
  *                   Produces a score from 0.0 (far away) to 1.0 (at center).
  * 
- *  2. WIFI SIGNAL → Is the device seeing/connected to the office mesh APs?
+ *  2. WIFI SIGNAL → Are office mesh APs visible in a passive WiFi scan?
+ *                   (NO CONNECTION REQUIRED — scan-only approach)
  *                   Produces a score based on:
  *                     • Number of visible mesh APs
- *                     • Signal strengths of those APs
- *                     • Whether the device is actively connected to the mesh SSID
+ *                     • Signal strengths of those APs (proximity indicator)
  * 
  *  Final decision:
  *    confidence = (GPS_WEIGHT × gpsScore) + (WIFI_WEIGHT × wifiScore)
@@ -38,6 +38,8 @@ import java.util.Set;
  *      strong proof of physical presence
  *    • Mesh topology means multiple APs are visible simultaneously,
  *      providing triangulation-like certainty
+ *    • Signal strengths indicate physical proximity without needing
+ *      to connect to the network
  * 
  * ══════════════════════════════════════════════════════════════════════
  */
@@ -53,27 +55,25 @@ public class GeoFenceChecker {
         public final float   gpsScore;            // 0.0 – 1.0
         public final float   wifiScore;           // 0.0 – 1.0
         public final boolean isGpsInsideRadius;
-        public final boolean isConnectedToMesh;
         public final int     visibleMeshAPCount;
         public final float   distanceFromCenter;  // meters
-        public final String  connectedBSSID;      // currently connected mesh AP (or null)
+        public final int     averageSignalStrength; // avg dBm of detected mesh APs
         public final List<MeshAPInfo> detectedMeshAPs;
 
         public GeoFenceResult(boolean isInsideCampus, float confidenceScore,
                               float gpsScore, float wifiScore,
-                              boolean isGpsInsideRadius, boolean isConnectedToMesh,
+                              boolean isGpsInsideRadius,
                               int visibleMeshAPCount, float distanceFromCenter,
-                              String connectedBSSID, List<MeshAPInfo> detectedMeshAPs) {
-            this.isInsideCampus     = isInsideCampus;
-            this.confidenceScore    = confidenceScore;
-            this.gpsScore           = gpsScore;
-            this.wifiScore          = wifiScore;
-            this.isGpsInsideRadius  = isGpsInsideRadius;
-            this.isConnectedToMesh  = isConnectedToMesh;
-            this.visibleMeshAPCount = visibleMeshAPCount;
-            this.distanceFromCenter = distanceFromCenter;
-            this.connectedBSSID    = connectedBSSID;
-            this.detectedMeshAPs   = detectedMeshAPs;
+                              int averageSignalStrength, List<MeshAPInfo> detectedMeshAPs) {
+            this.isInsideCampus       = isInsideCampus;
+            this.confidenceScore      = confidenceScore;
+            this.gpsScore             = gpsScore;
+            this.wifiScore            = wifiScore;
+            this.isGpsInsideRadius    = isGpsInsideRadius;
+            this.visibleMeshAPCount   = visibleMeshAPCount;
+            this.distanceFromCenter   = distanceFromCenter;
+            this.averageSignalStrength = averageSignalStrength;
+            this.detectedMeshAPs      = detectedMeshAPs;
         }
 
         @Override
@@ -85,7 +85,7 @@ public class GeoFenceChecker {
                     ", wifiScore=" + String.format("%.2f", wifiScore) +
                     ", distance=" + String.format("%.1fm", distanceFromCenter) +
                     ", meshAPs=" + visibleMeshAPCount +
-                    ", connected=" + isConnectedToMesh +
+                    ", avgSignal=" + averageSignalStrength + "dBm" +
                     '}';
         }
     }
@@ -120,22 +120,21 @@ public class GeoFenceChecker {
     // ═══════════════════════════════════════════════════════════════
 
     /**
-     * ★ PRIMARY METHOD ★
+     * ★ PRIMARY METHOD ★ (SCAN-ONLY MODE)
      * 
      * Evaluates whether the employee is inside the geo-fenced office campus
      * by combining GPS location and WiFi mesh scan data.
      * 
+     * NO WiFi connection is required — detection is purely based on
+     * scanning visible mesh AP signal strengths.
+     * 
      * @param currentLocation   The device's current GPS location (may be null if unavailable)
      * @param wifiScanResults   Results from WifiManager.getScanResults() (may be null or empty)
-     * @param connectedSSID     The SSID the device is currently connected to (may be null)
-     * @param connectedBSSID    The BSSID the device is currently connected to (may be null)
      * @return GeoFenceResult   Full result including confidence scores and details
      */
     public GeoFenceResult checkIfInsideGeofence(
             Location currentLocation,
-            List<ScanResult> wifiScanResults,
-            String connectedSSID,
-            String connectedBSSID) {
+            List<ScanResult> wifiScanResults) {
 
         // ─── Step 1: Evaluate GPS condition ───────────────────────
         float gpsScore           = 0.0f;
@@ -167,26 +166,17 @@ public class GeoFenceChecker {
         }
         // If GPS location is null, gpsScore remains 0.0 — WiFi alone must carry the decision.
 
-        // ─── Step 2: Evaluate WiFi mesh condition ─────────────────
+        // ─── Step 2: Evaluate WiFi mesh condition (SCAN-ONLY) ─────
+        //
+        // No WiFi connection required. We passively scan for visible
+        // mesh APs and use their signal strengths to determine proximity.
+        //
         float wifiScore            = 0.0f;
-        boolean isConnectedToMesh  = false;
         int visibleMeshAPCount     = 0;
+        int strongAPCount          = 0;
         List<MeshAPInfo> detectedMeshAPs = new ArrayList<>();
 
-        // Check 2a: Is the device ACTIVELY CONNECTED to the office mesh?
-        if (connectedSSID != null && connectedBSSID != null) {
-            if (connectedSSID.equals(GeoFenceConfig.OFFICE_MESH_SSID)
-                    && isKnownMeshBSSID(connectedBSSID)) {
-                isConnectedToMesh = true;
-                // Being connected to the mesh is very strong evidence → base score of 0.5
-                wifiScore += 0.5f;
-            }
-        }
-
-        // Check 2b: How many mesh APs are visible in the WiFi scan?
         if (wifiScanResults != null && !wifiScanResults.isEmpty()) {
-            int strongAPCount = 0;
-
             for (ScanResult scanResult : wifiScanResults) {
                 if (isKnownMeshBSSID(scanResult.BSSID)
                         && scanResult.level >= GeoFenceConfig.MIN_WIFI_SIGNAL_STRENGTH_DBM) {
@@ -204,25 +194,31 @@ public class GeoFenceChecker {
                 }
             }
 
-            // Scoring based on visible mesh AP count:
-            //   • Each visible AP adds to the score (diminishing returns)
-            //   • Seeing ≥ MIN_VISIBLE_MESH_APS is the minimum bar
-            //   • Strong signals get bonus points
+            // ── WiFi Scoring (scan-only — no connection bonus) ──────
+            //
+            // Since we don't require connecting to the mesh, the scan-based
+            // scoring carries the full WiFi weight:
+            //
+            //   • Seeing ≥ MIN_VISIBLE_MESH_APS → base 0.5
+            //   • Extra APs beyond minimum → up to +0.25 (proximity)
+            //   • Strong signal APs → up to +0.25 (close proximity)
+            //   • Only 1 AP visible → 0.2 (boundary area)
+            //
             if (visibleMeshAPCount >= GeoFenceConfig.MIN_VISIBLE_MESH_APS) {
-                // Base: 0.3 for meeting the minimum AP threshold
-                float apScore = 0.3f;
+                // Base: 0.5 for meeting the minimum AP threshold
+                float apScore = 0.5f;
 
-                // Bonus: up to 0.15 for additional APs beyond the minimum
+                // Bonus: up to 0.25 for additional APs beyond the minimum
                 int extraAPs = visibleMeshAPCount - GeoFenceConfig.MIN_VISIBLE_MESH_APS;
-                apScore += Math.min(extraAPs * 0.05f, 0.15f);
+                apScore += Math.min(extraAPs * 0.05f, 0.25f);
 
-                // Bonus: up to 0.05 for strong signals
-                apScore += Math.min(strongAPCount * 0.025f, 0.05f);
+                // Bonus: up to 0.25 for strong signal APs (close proximity)
+                apScore += Math.min(strongAPCount * 0.05f, 0.25f);
 
-                wifiScore += apScore;
+                wifiScore = apScore;
             } else if (visibleMeshAPCount == 1) {
                 // Only 1 AP visible — might be near the boundary
-                wifiScore += 0.1f;
+                wifiScore = 0.2f;
             }
         }
 
@@ -234,36 +230,36 @@ public class GeoFenceChecker {
                               + (GeoFenceConfig.WIFI_WEIGHT * wifiScore);
 
         // ═══════════════════════════════════════════════════════════
-        //  ★ THE CONDITIONAL STATEMENT ★
+        //  ★ THE CONDITIONAL STATEMENT ★ (SCAN-ONLY MODE)
         //  
         //  Employee is considered INSIDE the geo-fenced campus if:
         //    CONDITION 1: Combined confidence score meets threshold
         //                 OR
-        //    CONDITION 2: GPS is inside radius AND connected to mesh WiFi
-        //                 (override — both signals agree, skip confidence calc)
+        //    CONDITION 2: GPS is inside radius AND sees ≥ MIN_VISIBLE_MESH_APS
+        //                 (override — both signals agree independently)
         //                 OR
-        //    CONDITION 3: Connected to mesh WiFi AND sees ≥3 mesh APs with
-        //                 strong signal (WiFi-only override for deep indoor areas
+        //    CONDITION 3: Sees ≥3 mesh APs with strong average signal
+        //                 (WiFi-only override for deep indoor areas
         //                 where GPS is completely unavailable)
         // ═══════════════════════════════════════════════════════════
 
+        int avgSignalStrength = getAverageSignalStrength(detectedMeshAPs);
         boolean isInsideCampus;
 
         if (confidenceScore >= GeoFenceConfig.CONFIDENCE_THRESHOLD) {
             // CONDITION 1: Weighted confidence score exceeds threshold
             isInsideCampus = true;
 
-        } else if (isGpsInsideRadius && isConnectedToMesh) {
-            // CONDITION 2: Both GPS and WiFi independently confirm presence
+        } else if (isGpsInsideRadius
+                && visibleMeshAPCount >= GeoFenceConfig.MIN_VISIBLE_MESH_APS) {
+            // CONDITION 2: GPS confirms radius AND WiFi scan confirms mesh visibility
             // Even if individual scores are low, dual confirmation is reliable
             isInsideCampus = true;
 
-        } else if (isConnectedToMesh
-                && visibleMeshAPCount >= 3
-                && getAverageSignalStrength(detectedMeshAPs)
-                        >= GeoFenceConfig.STRONG_SIGNAL_THRESHOLD_DBM) {
+        } else if (visibleMeshAPCount >= 3
+                && avgSignalStrength >= GeoFenceConfig.STRONG_SIGNAL_THRESHOLD_DBM) {
             // CONDITION 3: Deep indoor override — GPS unavailable but WiFi
-            // evidence is overwhelming (connected + multiple strong APs)
+            // evidence is overwhelming (multiple strong mesh APs visible)
             isInsideCampus = true;
 
         } else {
@@ -274,9 +270,9 @@ public class GeoFenceChecker {
         return new GeoFenceResult(
                 isInsideCampus, confidenceScore,
                 gpsScore, wifiScore,
-                isGpsInsideRadius, isConnectedToMesh,
+                isGpsInsideRadius,
                 visibleMeshAPCount, distanceFromCenter,
-                connectedBSSID, detectedMeshAPs
+                avgSignalStrength, detectedMeshAPs
         );
     }
 
@@ -334,13 +330,10 @@ public class GeoFenceChecker {
      */
     public boolean isEmployeeInsideCampus(
             Location currentLocation,
-            List<ScanResult> wifiScanResults,
-            String connectedSSID,
-            String connectedBSSID) {
+            List<ScanResult> wifiScanResults) {
 
         return checkIfInsideGeofence(
-                currentLocation, wifiScanResults,
-                connectedSSID, connectedBSSID
+                currentLocation, wifiScanResults
         ).isInsideCampus;
     }
 }
