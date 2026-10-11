@@ -5,34 +5,25 @@
     
     MERGE this into your actual project's AndroidManifest.xml.
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.officegeotracker">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ═══════════════════════════════════════════════════════════
          PERMISSIONS
          ═══════════════════════════════════════════════════════════ -->
 
-    <!-- GPS / Location -->
+    <!-- WiFi Scanning Permissions -->
+    <!-- Android OS requires ACCESS_FINE_LOCATION solely to return WifiManager.getScanResults() -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- Required for Android 10+ to get location while in background -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
-    <!-- WiFi Scanning -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <!-- Required for Android 13+ to scan nearby WiFi -->
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
 
-    <!-- Foreground Service (Android 9+) -->
+    <!-- Foreground Service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <!-- Notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <!-- Internet (for Google Play Services / FusedLocationProvider) -->
-    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -53,12 +44,12 @@
             </intent-filter>
         </activity>
 
-        <!-- ═══ Geo-Fence Tracking Foreground Service ═══ -->
+        <!-- ═══ WiFi Tracking Foreground Service ═══ -->
         <service
             android:name=".GeoFenceTrackingService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="location" />
+            android:foregroundServiceType="connectedDevice" />
 
     </application>
 

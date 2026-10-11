@@ -114,7 +114,6 @@ internal static class Program
                 // Register core services
                 services.AddSingleton<GeoFenceChecker>();
                 services.AddSingleton<WifiScanner>();
-                services.AddSingleton<LocationProvider>();
 
                 // Register the background tracking service
                 services.AddSingleton<GeoFenceTrackingService>();

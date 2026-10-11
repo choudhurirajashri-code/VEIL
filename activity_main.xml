@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="utf-8"?>
 <!-- activity_main.xml — Layout for the campus geo-fence tracker -->
 <ScrollView
@@ -27,10 +26,73 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="GPS + WiFi Mesh Geo-Fence"
+            android:text="Pure WiFi RSSI Indoor and Campus Tracker"
             android:textSize="14sp"
             android:textColor="#757575"
             android:layout_marginBottom="24dp" />
+
+        <!-- ═══ System Location Switch Warning Card ═══ -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_location_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="3dp"
+            app:cardBackgroundColor="#FFF3E0"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚠️"
+                        android:textSize="22sp"
+                        android:layout_marginEnd="10dp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="System Location Switch is OFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="#E65100" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Android OS blocks Wi-Fi scanning when the system Location toggle in Quick Settings is OFF. Turn it ON to scan for campus Wi-Fi nodes. (No GPS is used)."
+                    android:textSize="12sp"
+                    android:textColor="#5D4037"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/btn_enable_location"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="⚙️ Open Settings to Turn On Location"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="#EF6C00" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
         <!-- ═══ Status Card ═══ -->
         <androidx.cardview.widget.CardView
@@ -56,6 +118,27 @@
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:textColor="#757575"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tv_current_zone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍 Current Zone: --"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#1976D2"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tv_nearest_ap"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nearest AP: --"
+                    android:textSize="13sp"
+                    android:textColor="#616161"
+                    android:layout_marginTop="4dp"
                     android:gravity="center" />
 
             </LinearLayout>
@@ -118,43 +201,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- GPS Score -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp"
-                xmlns:app="http://schemas.android.com/apk/res-auto">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/tv_gps_score"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="GPS Score: --"
-                        android:textSize="14sp"
-                        android:textColor="#2E7D32"
-                        android:layout_marginBottom="8dp" />
-
-                    <ProgressBar
-                        android:id="@+id/progress_gps"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="8dp"
-                        android:max="100"
-                        android:progress="0"
-                        android:progressTint="#43A047" />
-
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- WiFi Mesh Score -->
+            <!-- WiFi Score -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -173,7 +220,7 @@
                         android:id="@+id/tv_wifi_score"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="WiFi Mesh Score: --"
+                        android:text="WiFi RSSI Confidence: --"
                         android:textSize="14sp"
                         android:textColor="#E65100"
                         android:layout_marginBottom="8dp" />
@@ -215,17 +262,6 @@
                         android:layout_marginBottom="12dp" />
 
                     <TextView
-                        android:id="@+id/tv_distance"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Distance from center: --"
-                        android:textSize="14sp"
-                        android:textColor="#455A64"
-                        android:layout_marginBottom="6dp"
-                        android:drawableStart="@android:drawable/ic_menu_compass"
-                        android:drawablePadding="8dp" />
-
-                    <TextView
                         android:id="@+id/tv_mesh_aps"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -245,6 +281,119 @@
                         android:textColor="#455A64"
                         android:drawableStart="@android:drawable/ic_menu_share"
                         android:drawablePadding="8dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Campus Floor Nodes Breakdown -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp"
+                xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Campus Floor WiFi Nodes"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#0D47A1"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Node 1: RECEPTION -->
+                    <TextView
+                        android:id="@+id/tv_node1_info"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Node 1: RECEPTION (OFFICE_RECEPTION)"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="#212121" />
+
+                    <TextView
+                        android:id="@+id/tv_node1_signal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Signal: Not detected (58:BF:25:92:F3:41)"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        android:layout_marginBottom="4dp" />
+
+                    <ProgressBar
+                        android:id="@+id/progress_node1"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressTint="#1976D2"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Node 2: FLOOR_1 -->
+                    <TextView
+                        android:id="@+id/tv_node2_info"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Node 2: FLOOR 1 (OFFICE_FLOOR1)"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="#212121" />
+
+                    <TextView
+                        android:id="@+id/tv_node2_signal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Signal: Not detected (88:13:BF:09:D6:55)"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        android:layout_marginBottom="4dp" />
+
+                    <ProgressBar
+                        android:id="@+id/progress_node2"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressTint="#388E3C"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Node 3: FLOOR_2 -->
+                    <TextView
+                        android:id="@+id/tv_node3_info"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Node 3: FLOOR 2 (OFFICE_FLOOR2)"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="#212121" />
+
+                    <TextView
+                        android:id="@+id/tv_node3_signal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Signal: Not detected (8C:94:DF:6D:73:81)"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        android:layout_marginBottom="4dp" />
+
+                    <ProgressBar
+                        android:id="@+id/progress_node3"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressTint="#F57C00" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

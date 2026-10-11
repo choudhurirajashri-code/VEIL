@@ -1,6 +1,5 @@
 package com.example.officegeotracker;
 
-import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -10,8 +9,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.location.Location;
+import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.TransportInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -19,63 +21,52 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.Priority;
 
 import java.util.List;
 
 /**
- * Foreground Service that continuously monitors the employee's location using
- * GPS and WiFi mesh signals, and broadcasts whether they are inside the
- * geo-fenced office campus.
+ * Foreground Service that continuously monitors the employee's campus presence
+ * and floor location using pure WiFi RSSI scan data.
  * 
- * Runs as a foreground service (required for Android 8+ background location).
- * 
- * ARCHITECTURE:
- * ─────────────
- *   [GPS via FusedLocationProvider]  ──┐
- *                                      ├──→ GeoFenceChecker → Broadcast result
- *   [WiFi mesh scan via WifiManager] ──┘
- *                                         ↓
- *                                   MainActivity receives
- *                                   LocalBroadcast & updates UI
+ * NO GPS is used.
  */
 public class GeoFenceTrackingService extends Service {
 
     private static final String TAG = "GeoFenceTracker";
     public static final String ACTION_GEOFENCE_UPDATE =
             "com.example.officegeotracker.GEOFENCE_UPDATE";
-    public static final String EXTRA_IS_INSIDE    = "extra_is_inside";
-    public static final String EXTRA_CONFIDENCE   = "extra_confidence";
-    public static final String EXTRA_GPS_SCORE    = "extra_gps_score";
-    public static final String EXTRA_WIFI_SCORE   = "extra_wifi_score";
-    public static final String EXTRA_DISTANCE     = "extra_distance";
-    public static final String EXTRA_MESH_AP_COUNT = "extra_mesh_ap_count";
-    public static final String EXTRA_CONNECTED_TO_MESH = "extra_connected_to_mesh";
+
+    public static final String EXTRA_IS_INSIDE       = "extra_is_inside";
+    public static final String EXTRA_CONFIDENCE      = "extra_confidence";
+    public static final String EXTRA_MESH_AP_COUNT   = "extra_mesh_ap_count";
+    public static final String EXTRA_AVG_SIGNAL      = "extra_avg_signal";
+
+    // Campus Zone Extras
+    public static final String EXTRA_CURRENT_ZONE    = "extra_current_zone";
+    public static final String EXTRA_NEAREST_SSID    = "extra_nearest_ssid";
+    public static final String EXTRA_NEAREST_BSSID   = "extra_nearest_bssid";
+    public static final String EXTRA_NEAREST_SIGNAL  = "extra_nearest_signal";
+    public static final String EXTRA_EST_DISTANCE    = "extra_est_distance";
+    public static final String EXTRA_NODE1_SIGNAL    = "extra_node1_signal";
+    public static final String EXTRA_NODE2_SIGNAL    = "extra_node2_signal";
+    public static final String EXTRA_NODE3_SIGNAL    = "extra_node3_signal";
+    public static final String EXTRA_LOCATION_SERVICE_ENABLED = "extra_location_service_enabled";
 
     private static final String CHANNEL_ID = "geo_fence_tracking_channel";
     private static final int NOTIFICATION_ID = 1001;
 
     // Components
     private GeoFenceChecker geoFenceChecker;
-    private FusedLocationProviderClient fusedLocationClient;
-    private LocationCallback locationCallback;
     private WifiManager wifiManager;
     private Handler mainHandler;
 
     // Current state
-    private Location currentLocation;
     private List<ScanResult> latestScanResults;
 
     // WiFi scan receiver
@@ -84,14 +75,12 @@ public class GeoFenceTrackingService extends Service {
         public void onReceive(Context context, Intent intent) {
             boolean success = intent.getBooleanExtra(
                     WifiManager.EXTRA_RESULTS_UPDATED, false);
-            if (success) {
+            try {
                 latestScanResults = wifiManager.getScanResults();
                 Log.d(TAG, "WiFi scan completed. Found " +
                         (latestScanResults != null ? latestScanResults.size() : 0) + " networks");
-            } else {
-                // Use cached results if scan failed
-                latestScanResults = wifiManager.getScanResults();
-                Log.w(TAG, "WiFi scan failed, using cached results");
+            } catch (SecurityException se) {
+                Log.w(TAG, "SecurityException retrieving scan results: " + se.getMessage());
             }
         }
     };
@@ -117,13 +106,12 @@ public class GeoFenceTrackingService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.i(TAG, "GeoFenceTrackingService created");
+        Log.i(TAG, "GeoFenceTrackingService created (Pure WiFi RSSI Mode)");
 
-        geoFenceChecker     = new GeoFenceChecker();
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        wifiManager         = (WifiManager) getApplicationContext()
+        geoFenceChecker = new GeoFenceChecker();
+        wifiManager     = (WifiManager) getApplicationContext()
                                     .getSystemService(Context.WIFI_SERVICE);
-        mainHandler         = new Handler(Looper.getMainLooper());
+        mainHandler     = new Handler(Looper.getMainLooper());
 
         createNotificationChannel();
     }
@@ -133,22 +121,15 @@ public class GeoFenceTrackingService extends Service {
         Log.i(TAG, "GeoFenceTrackingService started");
 
         // Start as foreground service
-        Notification notification = buildForegroundNotification("Monitoring campus presence...");
+        Notification notification = buildForegroundNotification("Monitoring campus WiFi presence...");
         startForeground(NOTIFICATION_ID, notification);
-
-        // Start GPS tracking
-        startLocationUpdates();
 
         // Register WiFi scan receiver and start periodic scans
         IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(wifiScanReceiver, filter, Context.RECEIVER_EXPORTED);
-        } else {
-            registerReceiver(wifiScanReceiver, filter);
-        }
+        registerReceiver(wifiScanReceiver, filter);
         mainHandler.post(wifiScanRunnable);
 
-        // Start periodic geo-fence checks
+        // Start periodic presence checks
         mainHandler.postDelayed(geoFenceCheckRunnable, 2000); // Initial delay 2s
 
         return START_STICKY;
@@ -159,71 +140,98 @@ public class GeoFenceTrackingService extends Service {
         super.onDestroy();
         Log.i(TAG, "GeoFenceTrackingService destroyed");
 
-        // Clean up
         mainHandler.removeCallbacks(geoFenceCheckRunnable);
         mainHandler.removeCallbacks(wifiScanRunnable);
-
-        if (fusedLocationClient != null && locationCallback != null) {
-            fusedLocationClient.removeLocationUpdates(locationCallback);
-        }
 
         try {
             unregisterReceiver(wifiScanReceiver);
         } catch (IllegalArgumentException ignored) {
-            // Receiver was not registered
         }
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null; // Not a bound service
+        return null;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  GPS LOCATION UPDATES
+    //  LOCATION SERVICE & CONNECTED WIFI HELPERS
     // ═══════════════════════════════════════════════════════════════
 
-    private void startLocationUpdates() {
-        LocationRequest locationRequest = new LocationRequest.Builder(
-                Priority.PRIORITY_HIGH_ACCURACY,
-                GeoFenceConfig.GPS_UPDATE_INTERVAL_MS
-        )
-                .setMinUpdateIntervalMillis(GeoFenceConfig.GPS_FASTEST_INTERVAL_MS)
-                .build();
+    /**
+     * Checks whether system-level location toggle is enabled.
+     * Note: Android OS requires this switch to be ON for WifiManager.getScanResults().
+     * (NO GPS coordinates are requested or used).
+     */
+    public static boolean isLocationServiceEnabled(Context context) {
+        if (context == null) return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+            return lm != null && lm.isLocationEnabled();
+        } else {
+            try {
+                int mode = Settings.Secure.getInt(
+                        context.getContentResolver(),
+                        Settings.Secure.LOCATION_MODE,
+                        Settings.Secure.LOCATION_MODE_OFF);
+                return mode != Settings.Secure.LOCATION_MODE_OFF;
+            } catch (Exception e) {
+                return true;
+            }
+        }
+    }
 
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                if (locationResult != null && locationResult.getLastLocation() != null) {
-                    currentLocation = locationResult.getLastLocation();
-                    Log.d(TAG, "GPS updated: " + currentLocation.getLatitude()
-                            + ", " + currentLocation.getLongitude()
-                            + " (accuracy: " + currentLocation.getAccuracy() + "m)");
+    /**
+     * Obtains the currently connected WiFi network info (SSID, BSSID, RSSI).
+     * Acts as an immediate zero-latency fallback when active scanning is throttled or warming up.
+     */
+    private WifiInfo getConnectedWifiInfo() {
+        if (wifiManager == null) return null;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (cm != null) {
+                    Network activeNet = cm.getActiveNetwork();
+                    if (activeNet != null) {
+                        NetworkCapabilities caps = cm.getNetworkCapabilities(activeNet);
+                        if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                            TransportInfo transportInfo = caps.getTransportInfo();
+                            if (transportInfo instanceof WifiInfo) {
+                                return (WifiInfo) transportInfo;
+                            }
+                        }
+                    }
                 }
             }
-        };
-
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.requestLocationUpdates(
-                    locationRequest, locationCallback, Looper.getMainLooper());
-        } else {
-            Log.e(TAG, "Missing ACCESS_FINE_LOCATION permission!");
+            return wifiManager.getConnectionInfo();
+        } catch (Exception e) {
+            Log.w(TAG, "Error querying connected WiFi: " + e.getMessage());
+            return null;
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  WIFI MESH SCANNING
+    //  WIFI SCAN TRIGGER
     // ═══════════════════════════════════════════════════════════════
 
-    @SuppressWarnings("deprecation")
     private void triggerWifiScan() {
-        if (wifiManager != null && wifiManager.isWifiEnabled()) {
-            boolean started = wifiManager.startScan();
-            if (!started) {
+        if (wifiManager == null) return;
+
+        boolean locationOn = isLocationServiceEnabled(this);
+        if (!locationOn) {
+            Log.w(TAG, "⚠️ System Location switch is OFF! Android OS blocks WifiManager.getScanResults().");
+        }
+
+        if (wifiManager.isWifiEnabled()) {
+            boolean initiated = wifiManager.startScan();
+            if (!initiated) {
                 Log.w(TAG, "WiFi scan throttled by OS, using cached results");
-                latestScanResults = wifiManager.getScanResults();
+                try {
+                    latestScanResults = wifiManager.getScanResults();
+                } catch (SecurityException se) {
+                    Log.w(TAG, "SecurityException: " + se.getMessage());
+                }
             }
         } else {
             Log.w(TAG, "WiFi is disabled");
@@ -231,54 +239,53 @@ public class GeoFenceTrackingService extends Service {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  GEO-FENCE CHECK (THE CORE CONDITIONAL EVALUATION)
+    //  GEO-FENCE / ZONE CHECK (PURE WIFI RSSI)
     // ═══════════════════════════════════════════════════════════════
 
     private void performGeoFenceCheck() {
-        // Get current WiFi connection info
-        String connectedSSID  = null;
-        String connectedBSSID = null;
+        boolean locationEnabled = isLocationServiceEnabled(this);
 
-        if (wifiManager != null) {
-            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-            if (wifiInfo != null) {
-                connectedSSID  = wifiInfo.getSSID();
-                connectedBSSID = wifiInfo.getBSSID();
+        // Fetch currently connected WiFi network info as immediate presence source
+        WifiInfo connectedInfo = getConnectedWifiInfo();
+        String connSsid = null;
+        String connBssid = null;
+        int connRssi = -100;
+        int connFreq = 0;
 
-                // WifiInfo wraps SSID in quotes — remove them
-                if (connectedSSID != null) {
-                    connectedSSID = connectedSSID.replace("\"", "");
-                }
-            }
+        if (connectedInfo != null) {
+            connSsid = connectedInfo.getSSID();
+            connBssid = connectedInfo.getBSSID();
+            connRssi = connectedInfo.getRssi();
+            connFreq = connectedInfo.getFrequency();
+            Log.d(TAG, "Connected WiFi: SSID=" + connSsid + ", BSSID=" + connBssid + ", RSSI=" + connRssi + " dBm");
         }
 
-        // ★ INVOKE THE GEO-FENCE CHECKER ★
         GeoFenceChecker.GeoFenceResult result = geoFenceChecker.checkIfInsideGeofence(
-                currentLocation,
-                latestScanResults,
-                connectedSSID,
-                connectedBSSID
+                latestScanResults, connSsid, connBssid, connRssi, connFreq
         );
 
-        // Log the result
         Log.i(TAG, "─────────────────────────────────────");
-        Log.i(TAG, "GeoFence Check Result:");
+        Log.i(TAG, "WiFi Presence Result:");
         Log.i(TAG, "  Inside Campus:  " + result.isInsideCampus);
         Log.i(TAG, "  Confidence:     " + String.format("%.2f", result.confidenceScore));
-        Log.i(TAG, "  GPS Score:      " + String.format("%.2f", result.gpsScore));
-        Log.i(TAG, "  WiFi Score:     " + String.format("%.2f", result.wifiScore));
-        Log.i(TAG, "  Distance:       " + String.format("%.1fm", result.distanceFromCenter));
-        Log.i(TAG, "  Mesh APs:       " + result.visibleMeshAPCount);
-        Log.i(TAG, "  Connected:      " + result.isConnectedToMesh);
+        Log.i(TAG, "  Campus APs:     " + result.visibleMeshAPCount);
+        Log.i(TAG, "  Avg Signal:     " + result.averageSignalStrength + " dBm");
+        Log.i(TAG, "  Zone/Location:  " + result.currentZone);
+        Log.i(TAG, "  Nearest AP:     " + result.nearestNodeSsid + " (" + result.nearestNodeSignal + " dBm, ~" +
+                String.format("%.1fm", result.estimatedDistanceToNode) + ")");
+        Log.i(TAG, "  Location Toggle:" + (locationEnabled ? " ON" : " OFF (Android scan blocked!)"));
         Log.i(TAG, "─────────────────────────────────────");
 
-        // Broadcast result to the Activity
-        broadcastResult(result);
+        broadcastResult(result, locationEnabled);
 
-        // Update foreground notification
-        String status = result.isInsideCampus
-                ? "✅ Inside campus (confidence: " + String.format("%.0f%%", result.confidenceScore * 100) + ")"
-                : "❌ Outside campus (distance: " + String.format("%.0fm", result.distanceFromCenter) + ")";
+        String status;
+        if (result.isInsideCampus) {
+            status = "✅ Campus: " + result.currentZone + " (" + result.nearestNodeSignal + " dBm)";
+        } else if (!locationEnabled) {
+            status = "⚠️ Turn ON Location in phone settings to scan Wi-Fi";
+        } else {
+            status = "❌ Outside campus (No office WiFi detected)";
+        }
 
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (nm != null) {
@@ -286,19 +293,29 @@ public class GeoFenceTrackingService extends Service {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  BROADCAST RESULT TO ACTIVITY
-    // ═══════════════════════════════════════════════════════════════
-
-    private void broadcastResult(GeoFenceChecker.GeoFenceResult result) {
+    private void broadcastResult(GeoFenceChecker.GeoFenceResult result, boolean locationEnabled) {
         Intent intent = new Intent(ACTION_GEOFENCE_UPDATE);
-        intent.putExtra(EXTRA_IS_INSIDE,          result.isInsideCampus);
-        intent.putExtra(EXTRA_CONFIDENCE,          result.confidenceScore);
-        intent.putExtra(EXTRA_GPS_SCORE,           result.gpsScore);
-        intent.putExtra(EXTRA_WIFI_SCORE,          result.wifiScore);
-        intent.putExtra(EXTRA_DISTANCE,            result.distanceFromCenter);
-        intent.putExtra(EXTRA_MESH_AP_COUNT,       result.visibleMeshAPCount);
-        intent.putExtra(EXTRA_CONNECTED_TO_MESH,   result.isConnectedToMesh);
+        intent.putExtra(EXTRA_IS_INSIDE,                  result.isInsideCampus);
+        intent.putExtra(EXTRA_CONFIDENCE,                 result.confidenceScore);
+        intent.putExtra(EXTRA_MESH_AP_COUNT,              result.visibleMeshAPCount);
+        intent.putExtra(EXTRA_AVG_SIGNAL,                 result.averageSignalStrength);
+
+        intent.putExtra(EXTRA_CURRENT_ZONE,               result.currentZone);
+        intent.putExtra(EXTRA_NEAREST_SSID,               result.nearestNodeSsid);
+        intent.putExtra(EXTRA_NEAREST_BSSID,              result.nearestNodeBssid);
+        intent.putExtra(EXTRA_NEAREST_SIGNAL,             result.nearestNodeSignal);
+        intent.putExtra(EXTRA_EST_DISTANCE,               (float) result.estimatedDistanceToNode);
+        intent.putExtra(EXTRA_LOCATION_SERVICE_ENABLED,   locationEnabled);
+
+        int node1 = -100, node2 = -100, node3 = -100;
+        for (GeoFenceChecker.MeshAPInfo ap : result.detectedMeshAPs) {
+            if (ap.nodeId == 1) node1 = ap.signalStrengthDbm;
+            else if (ap.nodeId == 2) node2 = ap.signalStrengthDbm;
+            else if (ap.nodeId == 3) node3 = ap.signalStrengthDbm;
+        }
+        intent.putExtra(EXTRA_NODE1_SIGNAL, node1);
+        intent.putExtra(EXTRA_NODE2_SIGNAL, node2);
+        intent.putExtra(EXTRA_NODE3_SIGNAL, node3);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
@@ -311,10 +328,12 @@ public class GeoFenceTrackingService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Geo-Fence Tracking",
+                    "Campus Presence Service",
                     NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("Monitors employee campus presence using GPS and WiFi");
+            channel.setDescription("Monitors employee campus presence via WiFi RSSI");
+            channel.setShowBadge(false);
+
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) {
                 nm.createNotificationChannel(channel);
@@ -326,14 +345,16 @@ public class GeoFenceTrackingService extends Service {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this, 0, notificationIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+        );
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Office Campus Tracker")
                 .setContentText(contentText)
-                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
     }
 }

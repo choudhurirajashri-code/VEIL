@@ -312,3 +312,14 @@ public class WifiScanner : IDisposable
         }
     }
 }
+
+/// <summary>
+/// Model representing a single scanned WiFi network result on Windows.
+/// </summary>
+public class WifiScanResult
+{
+    public string SSID { get; set; } = string.Empty;
+    public string BSSID { get; set; } = string.Empty;
+    public int SignalStrengthDbm { get; set; }
+    public int Frequency { get; set; }
+}

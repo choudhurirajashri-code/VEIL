@@ -4,36 +4,23 @@ using Microsoft.Extensions.Logging;
 namespace VeilGeoFenceService;
 
 /// <summary>
-/// Background service that continuously monitors the employee's location using
-/// GPS and WiFi mesh signals, and determines whether they are inside the
-/// geo-fenced office campus.
+/// Background service that continuously monitors the employee's campus presence
+/// and floor location using pure WiFi RSSI signal scanning.
 /// 
-/// DIRECT PORT of GeoFenceTrackingService.java from the Android project.
-/// 
-/// Runs as a Windows Background Service (IHostedService).
-/// 
-/// ARCHITECTURE:
-/// ─────────────
-///   [GPS via Windows Location API]     ──┐
-///                                        ├──→ GeoFenceChecker → Event / Notification
-///   [WiFi scan via netsh/WlanAPI]      ──┘
-///                                           ↓
-///                                     TrayIcon receives
-///                                     event & updates tooltip/balloon
+/// NO GPS is used.
 /// </summary>
 public class GeoFenceTrackingService : BackgroundService
 {
     private readonly ILogger<GeoFenceTrackingService> _logger;
     private readonly GeoFenceChecker _geoFenceChecker;
     private readonly WifiScanner _wifiScanner;
-    private readonly LocationProvider _locationProvider;
 
     // Current state
     private List<WifiScanResult>? _latestScanResults;
     private GeoFenceChecker.GeoFenceResult? _lastResult;
 
     /// <summary>
-    /// Event fired whenever a geo-fence check completes.
+    /// Event fired whenever a campus presence check completes.
     /// The system tray icon subscribes to this to update the UI.
     /// </summary>
     public event Action<GeoFenceChecker.GeoFenceResult>? OnGeoFenceUpdate;
@@ -41,28 +28,26 @@ public class GeoFenceTrackingService : BackgroundService
     public GeoFenceTrackingService(
         ILogger<GeoFenceTrackingService> logger,
         GeoFenceChecker geoFenceChecker,
-        WifiScanner wifiScanner,
-        LocationProvider locationProvider)
+        WifiScanner wifiScanner)
     {
-        _logger           = logger;
-        _geoFenceChecker  = geoFenceChecker;
-        _wifiScanner      = wifiScanner;
-        _locationProvider = locationProvider;
+        _logger          = logger;
+        _geoFenceChecker = geoFenceChecker;
+        _wifiScanner     = wifiScanner;
     }
 
     /// <summary>
-    /// Gets the last geo-fence check result (for UI queries).
+    /// Gets the last check result (for UI queries).
     /// </summary>
     public GeoFenceChecker.GeoFenceResult? LastResult => _lastResult;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("GeoFenceTrackingService started");
+        _logger.LogInformation("GeoFenceTrackingService started (Pure WiFi RSSI Mode)");
 
         // Initial delay — let other services start
         await Task.Delay(2000, stoppingToken);
 
-        // Start the WiFi scan loop and geo-fence check loop concurrently
+        // Start the WiFi scan loop and check loop concurrently
         var wifiScanTask = RunWifiScanLoopAsync(stoppingToken);
         var geoCheckTask = RunGeoFenceCheckLoopAsync(stoppingToken);
 
@@ -96,7 +81,7 @@ public class GeoFenceTrackingService : BackgroundService
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  GEO-FENCE CHECK LOOP (THE CORE CONDITIONAL EVALUATION)
+    //  PRESENCE CHECK LOOP (PURE WIFI RSSI EVALUATION)
     // ═══════════════════════════════════════════════════════════════
 
     private async Task RunGeoFenceCheckLoopAsync(CancellationToken ct)
@@ -105,46 +90,36 @@ public class GeoFenceTrackingService : BackgroundService
         {
             try
             {
-                await PerformGeoFenceCheckAsync();
+                PerformGeoFenceCheck();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Geo-fence check failed");
+                _logger.LogError(ex, "Campus presence check failed");
             }
 
             await Task.Delay(GeoFenceConfig.GEOFENCE_CHECK_INTERVAL_MS, ct);
         }
     }
 
-    private async Task PerformGeoFenceCheckAsync()
+    private void PerformGeoFenceCheck()
     {
-        // Get current GPS location
-        var (latitude, longitude, accuracy) = await _locationProvider.GetLocationAsync();
-
-        // ★ INVOKE THE GEO-FENCE CHECKER (SCAN-ONLY) ★
-        // No WiFi connection info needed — purely scan-based detection
-        var result = _geoFenceChecker.CheckIfInsideGeofence(
-            latitude,
-            longitude,
-            accuracy,
-            _latestScanResults
-        );
-
+        // Pure WiFi scan-based detection (NO GPS)
+        var result = _geoFenceChecker.CheckIfInsideGeofence(_latestScanResults);
         _lastResult = result;
 
-        // Log the result (mirrors Android's log format exactly)
+        // Log the result
         _logger.LogInformation("─────────────────────────────────────");
-        _logger.LogInformation("GeoFence Check Result:");
+        _logger.LogInformation("WiFi Presence Result:");
         _logger.LogInformation("  Inside Campus:  {Inside}", result.IsInsideCampus);
         _logger.LogInformation("  Confidence:     {Confidence:F2}", result.ConfidenceScore);
-        _logger.LogInformation("  GPS Score:      {GPS:F2}", result.GpsScore);
-        _logger.LogInformation("  WiFi Score:     {WiFi:F2}", result.WifiScore);
-        _logger.LogInformation("  Distance:       {Distance:F1}m", result.DistanceFromCenter);
-        _logger.LogInformation("  Mesh APs:       {APs}", result.VisibleMeshAPCount);
+        _logger.LogInformation("  Campus APs:     {APs}", result.VisibleMeshAPCount);
         _logger.LogInformation("  Avg Signal:     {Signal} dBm", result.AverageSignalStrength);
+        _logger.LogInformation("  Zone/Location:  {Zone}", result.CurrentZone);
+        _logger.LogInformation("  Nearest AP:     {AP} ({Signal} dBm, ~{Distance:F1}m)",
+            result.NearestNodeSSID, result.NearestNodeSignal, result.EstimatedDistanceToNode);
         _logger.LogInformation("─────────────────────────────────────");
 
-        // Fire event for UI (equivalent of Android's LocalBroadcast)
+        // Fire event for UI
         OnGeoFenceUpdate?.Invoke(result);
     }
 }

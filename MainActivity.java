@@ -21,23 +21,19 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
+import android.provider.Settings;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
- * Main Activity that displays the employee's campus presence status.
+ * Main Activity that displays the employee's campus presence and floor zone.
  * 
- * Shows:
- *  • Whether the employee is inside/outside the geo-fenced campus
- *  • Confidence score (combined GPS + WiFi)
- *  • Individual GPS and WiFi scores
- *  • Distance from campus center
- *  • Number of visible mesh WiFi access points
- *  • Connection status to the mesh network
- * 
- * Controls:
- *  • Start/Stop tracking button
+ * PURE WIFI RSSI MODE — NO GPS:
+ *  • Whether the employee is inside/outside the campus
+ *  • Which floor/zone they are on (RECEPTION, FLOOR 1, FLOOR 2)
+ *  • Real-time signal strength for each campus access point
+ *  • Proximity distance estimates based on WiFi RSSI
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -45,21 +41,28 @@ public class MainActivity extends AppCompatActivity {
 
     // UI Elements
     private TextView tvStatus;
+    private TextView tvCurrentZone;
+    private TextView tvNearestAp;
     private TextView tvConfidence;
-    private TextView tvGpsScore;
     private TextView tvWifiScore;
-    private TextView tvDistance;
     private TextView tvMeshAPs;
     private TextView tvAvgSignal;
+    private TextView tvNode1Signal;
+    private ProgressBar progressNode1;
+    private TextView tvNode2Signal;
+    private ProgressBar progressNode2;
+    private TextView tvNode3Signal;
+    private ProgressBar progressNode3;
     private ProgressBar progressConfidence;
-    private ProgressBar progressGps;
     private ProgressBar progressWifi;
     private Button btnToggleTracking;
     private LinearLayout layoutDetails;
+    private CardView cardLocationWarning;
+    private Button btnEnableLocation;
 
     private boolean isTracking = false;
 
-    // Broadcast receiver for geo-fence updates from the Service
+    // Broadcast receiver for updates from GeoFenceTrackingService
     private final BroadcastReceiver geoFenceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -69,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    // Permission launcher
+    // Permission launcher for WiFi scanning permissions
     private final ActivityResultLauncher<String[]> permissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.RequestMultiplePermissions(),
@@ -85,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
                             startTracking();
                         } else {
                             Toast.makeText(this,
-                                    "Permissions required for campus tracking",
+                                    "WiFi scanning permissions required for campus tracking",
                                     Toast.LENGTH_LONG).show();
                         }
                     });
@@ -102,10 +105,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                geoFenceReceiver,
-                new IntentFilter(GeoFenceTrackingService.ACTION_GEOFENCE_UPDATE)
-        );
+        checkLocationServiceState();
+        IntentFilter filter = new IntentFilter(GeoFenceTrackingService.ACTION_GEOFENCE_UPDATE);
+        LocalBroadcastManager.getInstance(this).registerReceiver(geoFenceReceiver, filter);
     }
 
     @Override
@@ -114,23 +116,37 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(geoFenceReceiver);
     }
 
+    private void checkLocationServiceState() {
+        boolean enabled = GeoFenceTrackingService.isLocationServiceEnabled(this);
+        if (cardLocationWarning != null) {
+            cardLocationWarning.setVisibility(enabled ? View.GONE : View.VISIBLE);
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  UI INITIALIZATION
     // ═══════════════════════════════════════════════════════════════
 
     private void initViews() {
         tvStatus           = findViewById(R.id.tv_status);
+        tvCurrentZone      = findViewById(R.id.tv_current_zone);
+        tvNearestAp        = findViewById(R.id.tv_nearest_ap);
         tvConfidence       = findViewById(R.id.tv_confidence);
-        tvGpsScore         = findViewById(R.id.tv_gps_score);
         tvWifiScore        = findViewById(R.id.tv_wifi_score);
-        tvDistance          = findViewById(R.id.tv_distance);
         tvMeshAPs          = findViewById(R.id.tv_mesh_aps);
         tvAvgSignal        = findViewById(R.id.tv_avg_signal);
+        tvNode1Signal      = findViewById(R.id.tv_node1_signal);
+        progressNode1      = findViewById(R.id.progress_node1);
+        tvNode2Signal      = findViewById(R.id.tv_node2_signal);
+        progressNode2      = findViewById(R.id.progress_node2);
+        tvNode3Signal      = findViewById(R.id.tv_node3_signal);
+        progressNode3      = findViewById(R.id.progress_node3);
         progressConfidence = findViewById(R.id.progress_confidence);
-        progressGps        = findViewById(R.id.progress_gps);
         progressWifi       = findViewById(R.id.progress_wifi);
         btnToggleTracking  = findViewById(R.id.btn_toggle_tracking);
         layoutDetails      = findViewById(R.id.layout_details);
+        cardLocationWarning = findViewById(R.id.card_location_warning);
+        btnEnableLocation  = findViewById(R.id.btn_enable_location);
     }
 
     private void setupClickListeners() {
@@ -141,55 +157,61 @@ public class MainActivity extends AppCompatActivity {
                 checkPermissionsAndStart();
             }
         });
+
+        if (btnEnableLocation != null) {
+            btnEnableLocation.setOnClickListener(v -> {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Toast.makeText(this, "Please open Settings > Location and turn it ON", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  PERMISSION HANDLING
+    //  PERMISSION HANDLING (WiFi SCANNING ONLY — NO GPS)
     // ═══════════════════════════════════════════════════════════════
 
     private void checkPermissionsAndStart() {
         String[] permissions;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+
+            // Android 13+: NEARBY_WIFI_DEVICES + Notifications + Fine Location (required by OS for WiFi scanning)
             permissions = new String[]{
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_WIFI_STATE,
                     Manifest.permission.CHANGE_WIFI_STATE,
                     Manifest.permission.NEARBY_WIFI_DEVICES,
                     Manifest.permission.POST_NOTIFICATIONS,
                     Manifest.permission.FOREGROUND_SERVICE
             };
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+
+        } else {
+            // Android 12 and below: Fine location is required by Android to invoke WifiManager.getScanResults()
             permissions = new String[]{
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION,
                     Manifest.permission.ACCESS_WIFI_STATE,
                     Manifest.permission.CHANGE_WIFI_STATE,
                     Manifest.permission.FOREGROUND_SERVICE
-            };
-        } else {
-            permissions = new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_WIFI_STATE,
-                    Manifest.permission.CHANGE_WIFI_STATE,
             };
         }
 
         boolean allGranted = true;
         for (String perm : permissions) {
-            if (ContextCompat.checkSelfPermission(this, perm)
-                    != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
                 allGranted = false;
                 break;
             }
         }
 
         if (allGranted) {
+            checkLocationServiceState();
+            if (!GeoFenceTrackingService.isLocationServiceEnabled(this)) {
+                Toast.makeText(this,
+                        "⚠️ Please turn ON Location in phone settings to allow Wi-Fi scanning (no GPS used)",
+                        Toast.LENGTH_LONG).show();
+            }
             startTracking();
         } else {
             permissionLauncher.launch(permissions);
@@ -214,8 +236,8 @@ public class MainActivity extends AppCompatActivity {
         btnToggleTracking.setBackgroundColor(Color.parseColor("#D32F2F"));
         layoutDetails.setVisibility(View.VISIBLE);
 
-        Toast.makeText(this, "Campus tracking started", Toast.LENGTH_SHORT).show();
-        Log.i(TAG, "Tracking started");
+        Toast.makeText(this, "WiFi tracking started", Toast.LENGTH_SHORT).show();
+        Log.i(TAG, "WiFi tracking started");
     }
 
     private void stopTracking() {
@@ -228,9 +250,16 @@ public class MainActivity extends AppCompatActivity {
 
         tvStatus.setText("Tracking Stopped");
         tvStatus.setTextColor(Color.GRAY);
+        if (tvCurrentZone != null) {
+            tvCurrentZone.setText("📍 Current Zone: --");
+            tvCurrentZone.setTextColor(Color.GRAY);
+        }
+        if (tvNearestAp != null) {
+            tvNearestAp.setText("Nearest AP: --");
+        }
         layoutDetails.setVisibility(View.GONE);
 
-        Toast.makeText(this, "Campus tracking stopped", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "WiFi tracking stopped", Toast.LENGTH_SHORT).show();
         Log.i(TAG, "Tracking stopped");
     }
 
@@ -243,45 +272,93 @@ public class MainActivity extends AppCompatActivity {
                 GeoFenceTrackingService.EXTRA_IS_INSIDE, false);
         float confidence      = intent.getFloatExtra(
                 GeoFenceTrackingService.EXTRA_CONFIDENCE, 0f);
-        float gpsScore        = intent.getFloatExtra(
-                GeoFenceTrackingService.EXTRA_GPS_SCORE, 0f);
-        float wifiScore       = intent.getFloatExtra(
-                GeoFenceTrackingService.EXTRA_WIFI_SCORE, 0f);
-        float distance        = intent.getFloatExtra(
-                GeoFenceTrackingService.EXTRA_DISTANCE, 0f);
         int meshAPCount       = intent.getIntExtra(
                 GeoFenceTrackingService.EXTRA_MESH_AP_COUNT, 0);
         int avgSignal         = intent.getIntExtra(
                 GeoFenceTrackingService.EXTRA_AVG_SIGNAL, -100);
 
-        // ─── Status ──────────────────────────────────────────────
+        String currentZone    = intent.getStringExtra(
+                GeoFenceTrackingService.EXTRA_CURRENT_ZONE);
+        String nearestSsid    = intent.getStringExtra(
+                GeoFenceTrackingService.EXTRA_NEAREST_SSID);
+        int nearestSignal     = intent.getIntExtra(
+                GeoFenceTrackingService.EXTRA_NEAREST_SIGNAL, -100);
+        float estDist         = intent.getFloatExtra(
+                GeoFenceTrackingService.EXTRA_EST_DISTANCE, 999f);
+
+        int node1Signal       = intent.getIntExtra(
+                GeoFenceTrackingService.EXTRA_NODE1_SIGNAL, -100);
+        int node2Signal       = intent.getIntExtra(
+                GeoFenceTrackingService.EXTRA_NODE2_SIGNAL, -100);
+        int node3Signal       = intent.getIntExtra(
+                GeoFenceTrackingService.EXTRA_NODE3_SIGNAL, -100);
+        boolean locationEnabled = intent.getBooleanExtra(
+                GeoFenceTrackingService.EXTRA_LOCATION_SERVICE_ENABLED, true);
+
+        if (!locationEnabled) {
+            if (cardLocationWarning != null) cardLocationWarning.setVisibility(View.VISIBLE);
+        } else {
+            if (cardLocationWarning != null) cardLocationWarning.setVisibility(View.GONE);
+        }
+
+        // ─── Status & Zone ───────────────────────────────────────
         if (isInside) {
             tvStatus.setText("✅ INSIDE CAMPUS");
             tvStatus.setTextColor(Color.parseColor("#2E7D32")); // Green
+            tvCurrentZone.setText("📍 Current Location: " + (currentZone != null ? currentZone : "CAMPUS"));
+            tvCurrentZone.setTextColor(Color.parseColor("#1565C0")); // Blue
+        } else if (!locationEnabled && meshAPCount == 0) {
+            tvStatus.setText("⚠️ SYSTEM LOCATION OFF");
+            tvStatus.setTextColor(Color.parseColor("#E65100")); // Orange
+            tvCurrentZone.setText("📍 Turn ON Location to Scan Wi-Fi");
+            tvCurrentZone.setTextColor(Color.parseColor("#E65100"));
         } else {
             tvStatus.setText("❌ OUTSIDE CAMPUS");
             tvStatus.setTextColor(Color.parseColor("#C62828")); // Red
+            tvCurrentZone.setText("📍 Location: OUTSIDE");
+            tvCurrentZone.setTextColor(Color.parseColor("#C62828"));
+        }
+
+        if (nearestSignal > -100 && nearestSsid != null) {
+            tvNearestAp.setText("Nearest AP: " + nearestSsid + " (" + nearestSignal + " dBm • ~" +
+                    String.format("%.1f", estDist) + "m)");
+        } else if (!locationEnabled && meshAPCount == 0) {
+            tvNearestAp.setText("Wi-Fi scanning is blocked by Android when Location is OFF");
+        } else {
+            tvNearestAp.setText("Nearest AP: No office AP detected");
         }
 
         // ─── Confidence ──────────────────────────────────────────
         int confidencePercent = Math.round(confidence * 100);
-        tvConfidence.setText("Combined Confidence: " + confidencePercent + "%");
+        tvConfidence.setText("WiFi Confidence: " + confidencePercent + "%");
         progressConfidence.setProgress(confidencePercent);
 
-        // ─── GPS Score ───────────────────────────────────────────
-        int gpsPercent = Math.round(gpsScore * 100);
-        tvGpsScore.setText("GPS Score: " + gpsPercent + "%");
-        progressGps.setProgress(gpsPercent);
-
         // ─── WiFi Score ──────────────────────────────────────────
-        int wifiPercent = Math.round(wifiScore * 100);
-        tvWifiScore.setText("WiFi Mesh Score: " + wifiPercent + "%");
-        progressWifi.setProgress(wifiPercent);
+        tvWifiScore.setText("WiFi RSSI Score: " + confidencePercent + "%");
+        progressWifi.setProgress(confidencePercent);
 
         // ─── Details ─────────────────────────────────────────────
-        tvDistance.setText("Distance from center: " + String.format("%.1f m", distance));
-        tvMeshAPs.setText("Visible mesh APs: " + meshAPCount
-                + " / " + GeoFenceConfig.OFFICE_MESH_BSSIDS.length);
+        tvMeshAPs.setText("Visible campus APs: " + meshAPCount
+                + " / " + GeoFenceConfig.CAMPUS_NODES.length);
         tvAvgSignal.setText("Avg signal strength: " + avgSignal + " dBm");
+
+        // ─── Floor Nodes Signal Breakdown ─────────────────────────
+        updateNodeView(tvNode1Signal, progressNode1, "58:BF:25:92:F3:41", node1Signal);
+        updateNodeView(tvNode2Signal, progressNode2, "88:13:BF:09:D6:55", node2Signal);
+        updateNodeView(tvNode3Signal, progressNode3, "8C:94:DF:6D:73:81", node3Signal);
+    }
+
+    private void updateNodeView(TextView tv, ProgressBar pb, String bssid, int rssiDbm) {
+        if (tv == null || pb == null) return;
+        if (rssiDbm > -100) {
+            int quality = Math.max(0, Math.min(100, 2 * (rssiDbm + 100)));
+            tv.setText("Signal: " + rssiDbm + " dBm (" + quality + "% • " + bssid + ")");
+            tv.setTextColor(Color.parseColor("#1B5E20"));
+            pb.setProgress(quality);
+        } else {
+            tv.setText("Signal: Not detected (" + bssid + ")");
+            tv.setTextColor(Color.parseColor("#757575"));
+            pb.setProgress(0);
+        }
     }
 }

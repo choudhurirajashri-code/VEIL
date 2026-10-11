@@ -28,9 +28,9 @@ public class TrayApplication : ApplicationContext
     // Context menu items (updated with live data)
     private readonly ToolStripMenuItem _statusItem;
     private readonly ToolStripMenuItem _confidenceItem;
-    private readonly ToolStripMenuItem _gpsScoreItem;
+    private readonly ToolStripMenuItem _zoneItem;
+    private readonly ToolStripMenuItem _nearestApItem;
     private readonly ToolStripMenuItem _wifiScoreItem;
-    private readonly ToolStripMenuItem _distanceItem;
     private readonly ToolStripMenuItem _meshAPsItem;
     private readonly ToolStripMenuItem _avgSignalItem;
 
@@ -45,23 +45,23 @@ public class TrayApplication : ApplicationContext
         _logger = logger;
 
         // Create context menu items
-        _statusItem     = new ToolStripMenuItem("Status: Initializing...") { Enabled = false };
-        _confidenceItem = new ToolStripMenuItem("Confidence: --")          { Enabled = false };
-        _gpsScoreItem   = new ToolStripMenuItem("GPS Score: --")           { Enabled = false };
-        _wifiScoreItem  = new ToolStripMenuItem("WiFi Score: --")          { Enabled = false };
-        _distanceItem   = new ToolStripMenuItem("Distance: --")            { Enabled = false };
-        _meshAPsItem    = new ToolStripMenuItem("Mesh APs: --")            { Enabled = false };
-        _avgSignalItem  = new ToolStripMenuItem("Avg Signal: --")           { Enabled = false };
+        _statusItem     = new ToolStripMenuItem("Status: Initializing...")     { Enabled = false };
+        _zoneItem       = new ToolStripMenuItem("📍 Zone: --")                 { Enabled = false };
+        _nearestApItem  = new ToolStripMenuItem("Nearest AP: --")             { Enabled = false };
+        _confidenceItem = new ToolStripMenuItem("WiFi Confidence: --")        { Enabled = false };
+        _wifiScoreItem  = new ToolStripMenuItem("WiFi RSSI Score: --")        { Enabled = false };
+        _meshAPsItem    = new ToolStripMenuItem("Campus APs: --")             { Enabled = false };
+        _avgSignalItem  = new ToolStripMenuItem("Avg Signal: --")             { Enabled = false };
 
         // Build context menu
         var contextMenu = new ContextMenuStrip();
         contextMenu.Items.Add(_statusItem);
+        contextMenu.Items.Add(_zoneItem);
+        contextMenu.Items.Add(_nearestApItem);
         contextMenu.Items.Add(new ToolStripSeparator());
         contextMenu.Items.Add(_confidenceItem);
-        contextMenu.Items.Add(_gpsScoreItem);
         contextMenu.Items.Add(_wifiScoreItem);
         contextMenu.Items.Add(new ToolStripSeparator());
-        contextMenu.Items.Add(_distanceItem);
         contextMenu.Items.Add(_meshAPsItem);
         contextMenu.Items.Add(_avgSignalItem);
         contextMenu.Items.Add(new ToolStripSeparator());
@@ -116,8 +116,8 @@ public class TrayApplication : ApplicationContext
 
         // ─── Update tooltip ───────────────────────────────────────
         string statusText = result.IsInsideCampus
-            ? $"✅ Inside Campus ({result.ConfidenceScore * 100:F0}%)"
-            : $"❌ Outside Campus ({result.DistanceFromCenter:F0}m away)";
+            ? $"✅ Inside: {result.CurrentZone} ({result.ConfidenceScore * 100:F0}%)"
+            : "❌ Outside Campus (No office AP)";
 
         // NotifyIcon.Text has 128-char limit
         string tooltip = $"Office Campus Tracker\n{statusText}";
@@ -128,17 +128,16 @@ public class TrayApplication : ApplicationContext
             ? "✅ INSIDE CAMPUS"
             : "❌ OUTSIDE CAMPUS";
 
+        _zoneItem.Text = $"📍 Zone: {result.CurrentZone}";
+        _nearestApItem.Text = result.NearestNodeSignal > -100
+            ? $"Nearest: {result.NearestNodeSSID} ({result.NearestNodeSignal} dBm)"
+            : "Nearest AP: None detected";
+
         int confidencePercent = (int)Math.Round(result.ConfidenceScore * 100);
-        _confidenceItem.Text = $"Combined Confidence: {confidencePercent}%";
+        _confidenceItem.Text = $"WiFi Confidence: {confidencePercent}%";
+        _wifiScoreItem.Text = $"WiFi RSSI Score: {confidencePercent}%";
 
-        int gpsPercent = (int)Math.Round(result.GpsScore * 100);
-        _gpsScoreItem.Text = $"GPS Score: {gpsPercent}%";
-
-        int wifiPercent = (int)Math.Round(result.WifiScore * 100);
-        _wifiScoreItem.Text = $"WiFi Mesh Score: {wifiPercent}%";
-
-        _distanceItem.Text = $"Distance from center: {result.DistanceFromCenter:F1}m";
-        _meshAPsItem.Text = $"Visible mesh APs: {result.VisibleMeshAPCount} / {GeoFenceConfig.OFFICE_MESH_BSSIDS.Length}";
+        _meshAPsItem.Text = $"Campus APs: {result.VisibleMeshAPCount} / {GeoFenceConfig.CAMPUS_NODES.Length}";
         _avgSignalItem.Text = $"Avg signal strength: {result.AverageSignalStrength} dBm";
 
         // ─── Show balloon on status CHANGE ────────────────────────
@@ -149,8 +148,8 @@ public class TrayApplication : ApplicationContext
                 : "❌ Left Campus";
 
             string balloonText = result.IsInsideCampus
-                ? $"Confidence: {confidencePercent}%\nWiFi: {wifiPercent}% | GPS: {gpsPercent}%"
-                : $"Distance: {result.DistanceFromCenter:F0}m from center";
+                ? $"Location: {result.CurrentZone}\nNearest AP: {result.NearestNodeSSID} ({result.NearestNodeSignal} dBm)"
+                : "Outside office campus boundary";
 
             _notifyIcon.ShowBalloonTip(
                 5000,
@@ -224,22 +223,16 @@ public class TrayApplication : ApplicationContext
             ══════════════════════════════════════
 
             Status:              {(result.IsInsideCampus ? "✅ INSIDE CAMPUS" : "❌ OUTSIDE CAMPUS")}
-            Combined Confidence: {result.ConfidenceScore * 100:F1}%
+            Current Zone:        {result.CurrentZone}
+            Nearest AP:          {result.NearestNodeSSID} ({result.NearestNodeSignal} dBm)
+            Est. Distance:       ~{result.EstimatedDistanceToNode:F1}m
+            WiFi Confidence:     {result.ConfidenceScore * 100:F1}%
 
-            ── Signal Scores ──────────────────
-            GPS Score:           {result.GpsScore * 100:F1}%  (weight: {GeoFenceConfig.GPS_WEIGHT * 100}%)
-            WiFi Mesh Score:     {result.WifiScore * 100:F1}%  (weight: {GeoFenceConfig.WIFI_WEIGHT * 100}%)
+            ── WiFi Campus Nodes (Scan-Only) ─────
+            Visible Campus APs:  {result.VisibleMeshAPCount} / {GeoFenceConfig.CAMPUS_NODES.Length}
+            Avg Signal Strength: {result.AverageSignalStrength} dBm
 
-            ── Details ────────────────────────
-            Distance from center: {result.DistanceFromCenter:F1}m
-            Geo-fence radius:     {GeoFenceConfig.GEO_FENCE_RADIUS_METERS}m
-            GPS inside radius:    {(result.IsGpsInsideRadius ? "Yes" : "No")}
-
-            ── WiFi Mesh Network (Scan-Only) ─────
-            Visible mesh APs:     {result.VisibleMeshAPCount} / {GeoFenceConfig.OFFICE_MESH_BSSIDS.Length}
-            Avg signal strength:  {result.AverageSignalStrength} dBm
-
-            ── Thresholds ─────────────────────
+            ── Thresholds ────────────────────────
             Confidence threshold: {GeoFenceConfig.CONFIDENCE_THRESHOLD * 100}%
             Min signal strength:  {GeoFenceConfig.MIN_WIFI_SIGNAL_STRENGTH_DBM} dBm
             Min visible APs:      {GeoFenceConfig.MIN_VISIBLE_MESH_APS}
